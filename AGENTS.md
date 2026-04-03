@@ -17,22 +17,22 @@ This document provides comprehensive guidelines for AI coding agents working on 
 ### Local Development
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Preview production build locally
-npm run preview
+bun run preview
 
 # Run type checking
-npm run type-check
+bun run type-check
 
 # Run linting
-npm run lint
+bun run lint
 ```
 
 ### Environment Variables
