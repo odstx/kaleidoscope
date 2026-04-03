@@ -4,13 +4,29 @@
 
 ## 特性
 
-- **分层架构** - 对客层、接口层、应用层、数据层清晰分离
-- **类型安全** - Go 强类型 + TypeScript strict 模式
-- **现代化前端** - React 19 + Vite 8 + TailwindCSS 4
-- **完整认证** - JWT 认证 + 用户注册登录
-- **国际化** - i18next 多语言支持
-- **API 文档** - Swagger 自动生成
-- **测试完备** - 单元测试 + 集成测试 + E2E 测试
+### 后端
+- **分层架构** - Controllers、Services、Models、Middleware 清晰分离
+- **JWT 认证** - 完整的用户注册登录流程
+- **Rate Limiting** - 基于 Redis 的请求限流
+- **OpenTelemetry** - 分布式追踪和可观测性
+- **结构化日志** - Zap 高性能日志
+- **优雅关闭** - 信号处理和优雅关闭
+- **Swagger 文档** - 自动生成 API 文档
+
+### 前端
+- **React 19** - 最新 React 特性
+- **TypeScript** - strict 模式，完整类型安全
+- **TailwindCSS 4** - 原子化 CSS
+- **shadcn/ui** - 可访问性组件库
+- **i18next** - 多语言支持
+- **表单验证** - react-hook-form + zod
+- **路由守卫** - React Router v7
+
+### 测试
+- **单元测试** - Vitest + React Testing Library
+- **集成测试** - API 集成测试
+- **E2E 测试** - Playwright
+- **Mock** - MSW (Mock Service Worker)
 
 ## 技术栈
 
@@ -20,6 +36,8 @@
 
 ## 快速开始
 
+前置要求：Go 1.25+, Bun 1.0+
+
 ```bash
 # 安装依赖
 cd backend && go mod download
@@ -27,9 +45,24 @@ cd frontend && bun install
 
 # 启动开发服务器
 make dev
+
+# 或分别启动
+make backend  # http://localhost:8000
+make frontend # http://localhost:8001
 ```
 
-后端运行在 http://localhost:8000，前端运行在 http://localhost:8001
+## 常用命令
+
+```bash
+# 前端
+bun run dev          # 开发服务器
+bun run build        # 生产构建
+bun run test         # 单元测试
+bun run test:e2e     # E2E 测试
+
+# 后端
+go test ./...        # 运行测试
+```
 
 ## 文档
 
