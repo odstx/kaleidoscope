@@ -40,3 +40,7 @@ cors:
     - "Accept"
     - "Authorization"
   allow_credentials: true
+
+rate_limit:
+  enabled: true
+  requests_per_minute: 60
