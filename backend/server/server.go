@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 
 	"kaleidoscope/config"
@@ -19,6 +20,7 @@ import (
 	"kaleidoscope/middleware"
 	"kaleidoscope/models"
 	"kaleidoscope/services"
+	"kaleidoscope/telemetry"
 )
 
 // Server wraps the HTTP server and dependencies
@@ -26,38 +28,81 @@ type Server struct {
 	httpServer *http.Server
 	logger     *zap.Logger
 	config     *config.Config
+	telemetry  *telemetry.Telemetry
 }
 
 // NewServer creates a new HTTP server instance
 func NewServer(logger *zap.Logger, config *config.Config) *Server {
-	// Set Gin mode based on environment
 	if config.Server.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	} else {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	// Initialize database connections
+	tel, err := telemetry.InitTelemetry(context.Background(), config, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize telemetry", zap.Error(err))
+	}
+
 	db, err := database.Init(config)
 	if err != nil {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 
-	// Run automatic database migrations
+	if err := db.DB.Exec(`
+		DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'uid') THEN
+				ALTER TABLE users ADD COLUMN uid text;
+			END IF;
+		END $$;
+	`).Error; err != nil {
+		logger.Fatal("Failed to add uid column", zap.Error(err))
+	}
+
+	if err := db.DB.Exec(`
+		UPDATE users SET uid = gen_random_uuid()::text 
+		WHERE uid IS NULL OR uid = ''
+	`).Error; err != nil {
+		logger.Fatal("Failed to update existing users with uid", zap.Error(err))
+	}
+
+	if err := db.DB.Exec(`
+		ALTER TABLE users ALTER COLUMN uid SET NOT NULL;
+	`).Error; err != nil {
+		logger.Fatal("Failed to set uid not null", zap.Error(err))
+	}
+
+	if err := db.DB.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_users_uid ON users(uid);
+	`).Error; err != nil {
+		logger.Fatal("Failed to create uid unique index", zap.Error(err))
+	}
+
 	if err := db.DB.AutoMigrate(&models.User{}); err != nil {
 		logger.Fatal("Failed to run database migrations", zap.Error(err))
 	}
+
 	logger.Info("Database migrations completed successfully")
 
-	// Create UserService instance
 	userService := services.NewUserService(db.DB)
 
-	// Create Gin engine
+	var rateLimiter *middleware.RateLimiter
+	if config.RateLimit.Enabled {
+		rateLimiter = middleware.NewRateLimiter(db.Redis, config.RateLimit.RequestsPerMinute)
+		logger.Info("Rate limiter enabled", zap.Int("requests_per_minute", config.RateLimit.RequestsPerMinute))
+	}
+
 	router := gin.New()
 
-	// Add middleware
 	router.Use(middleware.Logger(logger))
 	router.Use(gin.Recovery())
+
+	if config.OTEL.Enabled {
+		router.Use(otelgin.Middleware(config.OTEL.ServiceName))
+		logger.Info("OpenTelemetry Gin middleware enabled")
+	}
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     config.CORS.AllowOrigins,
 		AllowMethods:     config.CORS.AllowMethods,
@@ -65,10 +110,8 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		AllowCredentials: config.CORS.AllowCredentials,
 	}))
 
-	// Initialize controllers and register routes
-	controllers.RegisterRoutes(router, logger, userService)
+	controllers.RegisterRoutes(router, logger, userService, rateLimiter)
 
-	// Create HTTP server
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%s", config.Server.Port),
 		Handler: router,
@@ -78,6 +121,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		httpServer: httpServer,
 		logger:     logger,
 		config:     config,
+		telemetry:  tel,
 	}
 }
 

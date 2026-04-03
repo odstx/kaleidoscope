@@ -11,11 +11,13 @@ import (
 
 // Config holds all configuration for our application
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	Log      LogConfig      `mapstructure:"log"`
-	CORS     CORSConfig     `mapstructure:"cors"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	Log       LogConfig       `mapstructure:"log"`
+	CORS      CORSConfig      `mapstructure:"cors"`
+	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
+	OTEL      OTELConfig      `mapstructure:"otel"`
 }
 
 type ServerConfig struct {
@@ -56,6 +58,18 @@ type CORSConfig struct {
 	AllowCredentials bool     `mapstructure:"allow_credentials"`
 }
 
+type RateLimitConfig struct {
+	Enabled           bool `mapstructure:"enabled"`
+	RequestsPerMinute int  `mapstructure:"requests_per_minute"`
+}
+
+type OTELConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	ServiceName  string `mapstructure:"service_name"`
+	ExporterHost string `mapstructure:"exporter_host"`
+	ExporterPort string `mapstructure:"exporter_port"`
+}
+
 // LoadConfig reads configuration from file or environment variables
 func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")
@@ -87,6 +101,12 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("cors.allow_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	viper.SetDefault("cors.allow_headers", []string{"Origin", "Content-Type", "Accept", "Authorization"})
 	viper.SetDefault("cors.allow_credentials", true)
+	viper.SetDefault("rate_limit.enabled", true)
+	viper.SetDefault("rate_limit.requests_per_minute", 60)
+	viper.SetDefault("otel.enabled", false)
+	viper.SetDefault("otel.service_name", "kaleidoscope")
+	viper.SetDefault("otel.exporter_host", "localhost")
+	viper.SetDefault("otel.exporter_port", "4317")
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

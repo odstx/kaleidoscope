@@ -10,8 +10,7 @@ import (
 	"kaleidoscope/services"
 )
 
-// RegisterRoutes registers all routes for the application
-func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService) {
+func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, rateLimiter *middleware.RateLimiter) {
 	userController := NewUserController(logger, userService)
 	systemController := NewSystemController(logger)
 
@@ -21,14 +20,24 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 	{
 		userGroup := v1.Group("/users")
 		{
-			userGroup.POST("/register", userController.Register)
-			userGroup.POST("/login", userController.Login)
-			userGroup.GET("/info", middleware.JWTAuth(), userController.GetUserInfo)
+			if rateLimiter != nil {
+				userGroup.POST("/register", rateLimiter.RateLimit(), userController.Register)
+				userGroup.POST("/login", rateLimiter.RateLimit(), userController.Login)
+				userGroup.GET("/info", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.GetUserInfo)
+			} else {
+				userGroup.POST("/register", userController.Register)
+				userGroup.POST("/login", userController.Login)
+				userGroup.GET("/info", middleware.JWTAuth(), userController.GetUserInfo)
+			}
 		}
 
 		systemGroup := v1.Group("/system")
 		{
-			systemGroup.GET("/info", systemController.GetSystemInfo)
+			if rateLimiter != nil {
+				systemGroup.GET("/info", rateLimiter.RateLimit(), systemController.GetSystemInfo)
+			} else {
+				systemGroup.GET("/info", systemController.GetSystemInfo)
+			}
 		}
 	}
 }
