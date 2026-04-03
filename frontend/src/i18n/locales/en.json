@@ -1,0 +1,83 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "menu": "Menu",
+    "profile": "Profile",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "User Login",
+    "description": "Enter your account information",
+    "email": "Email",
+    "emailPlaceholder": "Enter email",
+    "emailInvalid": "Please enter a valid email address",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "passwordRequired": "Please enter password",
+    "submit": "Login",
+    "submitting": "Logging in...",
+    "goToRegister": "Go to Register",
+    "loginFailed": "Login failed",
+    "loginError": "An error occurred during login"
+  },
+  "register": {
+    "title": "User Registration",
+    "description": "Create new account",
+    "username": "Username",
+    "usernamePlaceholder": "Enter username",
+    "usernameMin": "Username must be at least 3 characters",
+    "usernameMax": "Username must be at most 20 characters",
+    "usernameInvalid": "Username can only contain letters, numbers and underscores",
+    "email": "Email",
+    "emailPlaceholder": "Enter email",
+    "emailInvalid": "Please enter a valid email address",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "passwordMin": "Password must be at least 6 characters",
+    "submit": "Register",
+    "submitting": "Registering...",
+    "goToLogin": "Go to Login",
+    "registerFailed": "Registration failed",
+    "registerError": "An error occurred during registration",
+    "successTitle": "Registration Successful",
+    "successDescription": "Your account has been created successfully! Redirecting to login page in {{count}} seconds"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "quickActions": "Quick Actions",
+    "quickActionsDesc": "Common features",
+    "viewProfile": "View Profile",
+    "changePassword": "Change Password",
+    "welcome": "Welcome",
+    "welcomeDesc": "This is your personal dashboard",
+    "welcomeMessage": "You have successfully logged in. Here you can manage your personal information, view system status, and perform other operations."
+  },
+  "profile": {
+    "title": "User Profile",
+    "description": "Manage your account information",
+    "loading": "Loading...",
+    "accountDetails": "Account Details",
+    "accountDetailsDesc": "Your personal information",
+    "email": "Email:",
+    "userId": "User ID:",
+    "fetchError": "Failed to fetch user information"
+  },
+  "footer": {
+    "loading": "Loading...",
+    "error": "Unable to load version info",
+    "version": "Version:",
+    "buildId": "Build ID:"
+  },
+  "language": {
+    "title": "Language",
+    "switch": "Switch Language",
+    "en": "English",
+    "zh": "中文"
+  }
+}

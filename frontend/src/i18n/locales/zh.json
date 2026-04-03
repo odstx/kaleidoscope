@@ -1,0 +1,83 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "submit": "提交",
+    "cancel": "取消",
+    "confirm": "确认"
+  },
+  "nav": {
+    "dashboard": "控制台",
+    "menu": "菜单",
+    "profile": "个人信息",
+    "logout": "退出登录"
+  },
+  "login": {
+    "title": "用户登录",
+    "description": "输入您的账户信息",
+    "email": "邮箱",
+    "emailPlaceholder": "请输入邮箱",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "passwordRequired": "请输入密码",
+    "submit": "登录",
+    "submitting": "登录中...",
+    "goToRegister": "去注册",
+    "loginFailed": "登录失败",
+    "loginError": "登录过程中发生错误"
+  },
+  "register": {
+    "title": "用户注册",
+    "description": "创建新账户",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "usernameMin": "用户名至少需要3个字符",
+    "usernameMax": "用户名最多20个字符",
+    "usernameInvalid": "用户名只能包含字母、数字和下划线",
+    "email": "邮箱",
+    "emailPlaceholder": "请输入邮箱",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "passwordMin": "密码至少需要6个字符",
+    "submit": "注册",
+    "submitting": "注册中...",
+    "goToLogin": "去登录",
+    "registerFailed": "注册失败",
+    "registerError": "注册过程中发生错误",
+    "successTitle": "注册成功",
+    "successDescription": "您的账户已成功创建！{{count}}秒后自动跳转到登录页面"
+  },
+  "dashboard": {
+    "title": "控制面板",
+    "quickActions": "快速操作",
+    "quickActionsDesc": "常用功能入口",
+    "viewProfile": "查看个人信息",
+    "changePassword": "修改密码",
+    "welcome": "欢迎使用",
+    "welcomeDesc": "这是您的个人控制面板",
+    "welcomeMessage": "您已成功登录系统。在这里您可以管理您的个人信息、查看系统状态以及进行其他操作。"
+  },
+  "profile": {
+    "title": "用户信息",
+    "description": "管理您的账户信息",
+    "loading": "加载中...",
+    "accountDetails": "账户详情",
+    "accountDetailsDesc": "您的个人信息",
+    "email": "邮箱:",
+    "userId": "用户ID:",
+    "fetchError": "获取用户信息失败"
+  },
+  "footer": {
+    "loading": "加载中...",
+    "error": "无法加载版本信息",
+    "version": "版本:",
+    "buildId": "构建ID:"
+  },
+  "language": {
+    "title": "语言",
+    "switch": "切换语言",
+    "en": "English",
+    "zh": "中文"
+  }
+}
