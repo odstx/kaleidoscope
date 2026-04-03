@@ -17,7 +17,7 @@
 - **优雅关闭** - 信号处理和优雅关闭
 - **Swagger 文档** - 自动生成 API 文档
 
-### 前端
+### 前端 (React)
 - **React 19** - 最新 React 特性
 - **TypeScript** - strict 模式，完整类型安全
 - **TailwindCSS 4** - 原子化 CSS
@@ -25,6 +25,14 @@
 - **i18next** - 多语言支持
 - **表单验证** - react-hook-form + zod
 - **路由守卫** - React Router v7
+
+### 前端 (Swift)
+- **SwiftUI** - 声明式 UI 框架
+- **跨平台** - 支持 macOS 和 iOS
+- **i18n** - 多语言支持 (英文/中文)
+- **MVVM** - 清晰的架构分层
+- **API Service** - 与后端完整集成
+- **测试** - 单元测试和集成测试
 
 ### 测试
 - **单元测试** - Vitest + React Testing Library

@@ -53,3 +53,5 @@ lerna-debug.log*
 # Misc
 *.pem
 backend/docs
+swift/.build
+swift/*.app

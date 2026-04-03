@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend run
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend run macos
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -77,3 +77,19 @@ build-backend:
 
 frontend:
 	cd frontend && bun run dev
+
+macos:
+	@echo "Building macOS app from Swift package..."
+	@echo "Version: $(VERSION)"
+	@echo "Build ID: $(BUILD_ID)"
+	cd swift && swift build -c release
+	@mkdir -p swift/FrontendApp.app/Contents/MacOS
+	@mkdir -p swift/FrontendApp.app/Contents/Resources
+	@cp swift/.build/release/FrontendApp swift/FrontendApp.app/Contents/MacOS/
+	@printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n<key>CFBundleDevelopmentRegion</key>\n<string>en</string>\n<key>CFBundleExecutable</key>\n<string>FrontendApp</string>\n<key>CFBundleIdentifier</key>\n<string>com.app.frontend</string>\n<key>CFBundleInfoDictionaryVersion</key>\n<string>6.0</string>\n<key>CFBundleName</key>\n<string>FrontendApp</string>\n<key>CFBundlePackageType</key>\n<string>APPL</string>\n<key>CFBundleShortVersionString</key>\n<string>$(VERSION)</string>\n<key>CFBundleVersion</key>\n<string>$(BUILD_ID)</string>\n<key>LSMinimumSystemVersion</key>\n<string>14.0</string>\n<key>NSHighResolutionCapable</key>\n<true/>\n</dict>\n</plist>' > swift/FrontendApp.app/Contents/Info.plist
+	@echo "macOS app created at swift/FrontendApp.app"
+	@echo "Killing existing FrontendApp..."
+	@pkill -f FrontendApp 2>/dev/null || true
+	@sleep 1
+	@echo "Launching FrontendApp..."
+	@open swift/FrontendApp.app
