@@ -1,5 +1,9 @@
 # Kaleidoscope
 
+[![CI](https://github.com/odstx/kaleidoscope/workflows/CI/badge.svg)](https://github.com/odstx/kaleidoscope/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/badge/coverage-auto-brightgreen)](https://github.com/odstx/kaleidoscope/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 全栈应用，Go 后端 + React 前端，分层架构设计。
 
 ## 特性

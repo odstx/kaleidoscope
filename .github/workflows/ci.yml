@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Run Backend Tests
+        working-directory: backend
+        run: go test ./... -v -race -coverprofile=coverage.out
+
+      - name: Upload Backend Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.out
+
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: bun install
+
+      - name: Run Frontend Unit Tests
+        working-directory: frontend
+        run: bun run test --run
+
+      - name: Run Frontend Lint
+        working-directory: frontend
+        run: bun run lint
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: bun run build
+
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Playwright
+        working-directory: frontend
+        run: bun install && bunx playwright install --with-deps
+
+      - name: Start Backend
+        working-directory: backend
+        run: go run . server --port 9000 &
+        env:
+          ENV: test
+
+      - name: Start Frontend
+        working-directory: frontend
+        run: cp .env.test .env.local && bun run dev --port 9001 &
+        env:
+          ENV: test
+
+      - name: Wait for Services
+        run: sleep 10
+
+      - name: Run E2E Tests
+        working-directory: frontend
+        run: bun run test:e2e
+        env:
+          ENV: test
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 30
+
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    needs: [test-backend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Build
+        working-directory: backend
+        run: |
+          VERSION=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
+          BUILD_ID=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+          
+          go build -ldflags "\
+            -X 'kaleidoscope/version.Version=${VERSION}' \
+            -X 'kaleidoscope/version.BuildID=${BUILD_ID}' \
+            -X 'kaleidoscope/version.BuildTime=${BUILD_TIME}' \
+            -X 'kaleidoscope/version.GitCommit=${GIT_COMMIT}'" \
+            -o kaleidoscope .
