@@ -81,6 +81,18 @@
       "verifyError": "TOTP 验证码无效",
       "enableError": "启用 TOTP 失败",
       "disableError": "禁用 TOTP 失败"
+    },
+    "hawk": {
+      "title": "Hawk 认证",
+      "description": "HTTP Hawk 认证协议",
+      "enabled": "Hawk 已启用",
+      "setup": "设置 Hawk",
+      "enable": "启用 Hawk",
+      "disable": "禁用 Hawk",
+      "saveKey": "请安全保存此密钥：",
+      "setupError": "设置 Hawk 失败",
+      "enableError": "启用 Hawk 失败",
+      "disableError": "禁用 Hawk 失败"
     }
   },
   "footer": {
@@ -94,5 +106,11 @@
     "switch": "切换语言",
     "en": "English",
     "zh": "中文"
+  },
+  "theme": {
+    "title": "主题",
+    "auto": "自动",
+    "light": "亮色",
+    "dark": "暗色"
   }
 }

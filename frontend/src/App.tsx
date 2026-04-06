@@ -6,23 +6,26 @@ import UserProfilePage from './pages/UserProfilePage';
 import { Footer } from './components/Footer';
 import { Navbar } from './components/Navbar';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './i18n';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Navbar />
-        <Routes>
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/profile" element={<UserProfilePage />} />
-          <Route path="/" element={<LoginPage />} />
-        </Routes>
-      </Router>
-      <Footer />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Navbar />
+          <Routes>
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<UserProfilePage />} />
+            <Route path="/" element={<LoginPage />} />
+          </Routes>
+        </Router>
+        <Footer />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -81,6 +81,18 @@
       "verifyError": "Invalid TOTP code",
       "enableError": "Failed to enable TOTP",
       "disableError": "Failed to disable TOTP"
+    },
+    "hawk": {
+      "title": "Hawk Authentication",
+      "description": "HTTP Hawk authentication protocol",
+      "enabled": "Hawk is enabled",
+      "setup": "Setup Hawk",
+      "enable": "Enable Hawk",
+      "disable": "Disable Hawk",
+      "saveKey": "Save this key securely:",
+      "setupError": "Failed to setup Hawk",
+      "enableError": "Failed to enable Hawk",
+      "disableError": "Failed to disable Hawk"
     }
   },
   "footer": {
@@ -94,5 +106,11 @@
     "switch": "Switch Language",
     "en": "English",
     "zh": "中文"
+  },
+  "theme": {
+    "title": "Theme",
+    "auto": "Auto",
+    "light": "Light",
+    "dark": "Dark"
   }
 }
