@@ -21,6 +21,7 @@ import (
 	"kaleidoscope/models"
 	"kaleidoscope/services"
 	"kaleidoscope/telemetry"
+	"kaleidoscope/worker"
 )
 
 // Server wraps the HTTP server and dependencies
@@ -55,7 +56,14 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	logger.Info("Database migrations completed successfully")
 
-	userService := services.NewUserService(db.DB)
+	// Create Asynq client for task enqueuing
+	asynqClient := worker.NewClient(
+		fmt.Sprintf("%s:%s", config.Redis.Host, config.Redis.Port),
+		config.Redis.Password,
+		config.Redis.DB,
+	)
+
+	userService := services.NewUserService(db.DB, asynqClient)
 
 	var rateLimiter *middleware.RateLimiter
 	if config.RateLimit.Enabled {

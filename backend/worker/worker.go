@@ -7,16 +7,19 @@ import (
 
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
+	"kaleidoscope/config"
+	"kaleidoscope/utils"
 )
 
 // Worker handles background task processing
 type Worker struct {
-	server *asynq.Server
-	logger *zap.Logger
+	server       *asynq.Server
+	logger       *zap.Logger
+	emailService *utils.EmailService
 }
 
 // NewWorker creates a new worker instance
-func NewWorker(redisAddr, redisPassword string, redisDB int, logger *zap.Logger) *Worker {
+func NewWorker(redisAddr, redisPassword string, redisDB int, emailConfig *config.EmailConfig, logger *zap.Logger) *Worker {
 	redisConnOpt := asynq.RedisClientOpt{
 		Addr:     redisAddr,
 		Password: redisPassword,
@@ -35,9 +38,12 @@ func NewWorker(redisAddr, redisPassword string, redisDB int, logger *zap.Logger)
 		},
 	)
 
+	emailService := utils.NewEmailService(emailConfig)
+
 	return &Worker{
-		server: server,
-		logger: logger,
+		server:       server,
+		logger:       logger,
+		emailService: emailService,
 	}
 }
 
@@ -67,17 +73,36 @@ func (w *Worker) handleSendWelcomeEmail(ctx context.Context, task *asynq.Task) e
 		return fmt.Errorf("failed to unmarshal payload: %w", err)
 	}
 
-	// TODO: Implement actual email sending logic here
-	// For now, just log the action
 	w.logger.Info("Sending welcome email",
 		zap.Uint("user_id", payload.UserID),
 		zap.String("username", payload.Username),
 		zap.String("email", payload.Email))
 
-	// In a real implementation, you would:
-	// 1. Use an email service/client to send the email
-	// 2. Handle errors and retries appropriately
-	// 3. Log success/failure
+	// Create welcome email content
+	subject := "Welcome to Kaleidoscope!"
+	body := fmt.Sprintf(`
+		<html>
+		<body>
+			<h2>Welcome, %s!</h2>
+			<p>Thank you for registering with Kaleidoscope. We're excited to have you on board!</p>
+			<p>Your user ID is: %d</p>
+			<p>Best regards,<br>The Kaleidoscope Team</p>
+		</body>
+		</html>
+	`, payload.Username, payload.UserID)
+
+	// Send the email using EmailService
+	if err := w.emailService.SendEmail(payload.Email, subject, body); err != nil {
+		w.logger.Error("Failed to send welcome email",
+			zap.Uint("user_id", payload.UserID),
+			zap.String("email", payload.Email),
+			zap.Error(err))
+		return fmt.Errorf("failed to send welcome email: %w", err)
+	}
+
+	w.logger.Info("Welcome email sent successfully",
+		zap.Uint("user_id", payload.UserID),
+		zap.String("email", payload.Email))
 
 	return nil
 }

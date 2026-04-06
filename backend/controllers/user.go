@@ -142,6 +142,7 @@ func (uc *UserController) GetUserInfo(c *gin.Context) {
 		"uid":          user.UID,
 		"email":        user.Email,
 		"totp_enabled": user.TOTPEnabled,
+		"hawk_enabled": user.HawkEnabled,
 	})
 }
 
@@ -214,4 +215,51 @@ func (uc *UserController) DisableTOTP(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "TOTP disabled successfully"})
+}
+
+type HawkSetupResponse struct {
+	Key string `json:"key"`
+}
+
+func (uc *UserController) SetupHawk(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Setup Hawk request", zap.Uint("userID", userID))
+
+	key, err := uc.userService.GenerateHawkKey(userID)
+	if err != nil {
+		uc.logger.Error("Failed to setup Hawk", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to setup Hawk"})
+		return
+	}
+
+	c.JSON(http.StatusOK, HawkSetupResponse{Key: key})
+}
+
+func (uc *UserController) EnableHawk(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Enable Hawk request", zap.Uint("userID", userID))
+
+	if err := uc.userService.EnableHawk(userID); err != nil {
+		uc.logger.Error("Failed to enable Hawk", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Hawk enabled successfully"})
+}
+
+func (uc *UserController) DisableHawk(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Disable Hawk request", zap.Uint("userID", userID))
+
+	if err := uc.userService.DisableHawk(userID); err != nil {
+		uc.logger.Error("Failed to disable Hawk", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Hawk disabled successfully"})
 }

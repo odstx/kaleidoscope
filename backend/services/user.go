@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -8,14 +9,16 @@ import (
 	"gorm.io/gorm"
 	"kaleidoscope/models"
 	"kaleidoscope/utils"
+	"kaleidoscope/worker"
 )
 
 type UserService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	client *worker.Client
 }
 
-func NewUserService(db *gorm.DB) *UserService {
-	return &UserService{db: db}
+func NewUserService(db *gorm.DB, client *worker.Client) *UserService {
+	return &UserService{db: db, client: client}
 }
 
 // Register creates a new user with the provided username, email and password
@@ -59,6 +62,14 @@ func (s *UserService) Register(username, email, password string) (*models.User, 
 	// Save to database
 	if err := s.db.Create(user).Error; err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Enqueue welcome email task
+	if s.client != nil {
+		if err := s.client.EnqueueSendWelcomeEmail(context.Background(), user.ID, user.Username, user.Email); err != nil {
+			// Log the error but don't fail the registration - email sending is best effort
+			fmt.Printf("Warning: failed to enqueue welcome email: %v\n", err)
+		}
 	}
 
 	// Remove password from returned user for security
@@ -206,4 +217,57 @@ func (s *UserService) LoginWithTOTP(email, password, totpCode string) (*models.U
 	}
 
 	return user, nil
+}
+
+func (s *UserService) GenerateHawkKey(userID uint) (string, error) {
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return "", fmt.Errorf("user not found: %w", err)
+	}
+
+	key, err := utils.GenerateHawkKey()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate Hawk key: %w", err)
+	}
+
+	user.HawkKey = key
+	user.HawkEnabled = false
+	if err := s.db.Save(&user).Error; err != nil {
+		return "", fmt.Errorf("failed to save Hawk key: %w", err)
+	}
+
+	return key, nil
+}
+
+func (s *UserService) EnableHawk(userID uint) error {
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	if user.HawkKey == "" {
+		return errors.New("Hawk key not configured for this user")
+	}
+
+	user.HawkEnabled = true
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to enable Hawk: %w", err)
+	}
+
+	return nil
+}
+
+func (s *UserService) DisableHawk(userID uint) error {
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	user.HawkKey = ""
+	user.HawkEnabled = false
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to disable Hawk: %w", err)
+	}
+
+	return nil
 }

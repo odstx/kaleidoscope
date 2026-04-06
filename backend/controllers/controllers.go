@@ -28,6 +28,9 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/totp/verify", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.VerifyTOTP)
 				userGroup.POST("/totp/enable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.EnableTOTP)
 				userGroup.POST("/totp/disable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.DisableTOTP)
+				userGroup.POST("/hawk/setup", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.SetupHawk)
+				userGroup.POST("/hawk/enable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.EnableHawk)
+				userGroup.POST("/hawk/disable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.DisableHawk)
 			} else {
 				userGroup.POST("/register", userController.Register)
 				userGroup.POST("/login", userController.Login)
@@ -36,6 +39,9 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/totp/verify", middleware.JWTAuth(), userController.VerifyTOTP)
 				userGroup.POST("/totp/enable", middleware.JWTAuth(), userController.EnableTOTP)
 				userGroup.POST("/totp/disable", middleware.JWTAuth(), userController.DisableTOTP)
+				userGroup.POST("/hawk/setup", middleware.JWTAuth(), userController.SetupHawk)
+				userGroup.POST("/hawk/enable", middleware.JWTAuth(), userController.EnableHawk)
+				userGroup.POST("/hawk/disable", middleware.JWTAuth(), userController.DisableHawk)
 			}
 		}
 

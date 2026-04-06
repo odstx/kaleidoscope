@@ -18,6 +18,8 @@ type Config struct {
 	CORS      CORSConfig      `mapstructure:"cors"`
 	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
 	OTEL      OTELConfig      `mapstructure:"otel"`
+	Hawk      HawkConfig      `mapstructure:"hawk"`
+	Email     EmailConfig     `mapstructure:"email"`
 }
 
 type ServerConfig struct {
@@ -88,6 +90,20 @@ type OTELHeaderConfig struct {
 	Value string `mapstructure:"value"`
 }
 
+type HawkConfig struct {
+	Enabled           bool `mapstructure:"enabled"`
+	TimestampSkewSecs int  `mapstructure:"timestamp_skew_secs"`
+}
+
+type EmailConfig struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
+	From     string `mapstructure:"from"`
+	UseTLS   bool   `mapstructure:"use_tls"`
+}
+
 func generateDefaultConfig(path string) error {
 	config := `server:
   host: ""
@@ -147,6 +163,14 @@ otel:
   sampling_rate: 1.0
   propagation_format: "w3c"
   headers: []
+
+email:
+  host: "smtp.gmail.com"
+  port: 587
+  username: ""
+  password: ""
+  from: ""
+  use_tls: true
 `
 	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
 		return fmt.Errorf("failed to write default config: %w", err)
@@ -205,6 +229,12 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("otel.sampling_rate", 1.0)
 	viper.SetDefault("otel.propagation_format", "w3c")
 	viper.SetDefault("otel.headers", []interface{}{})
+	viper.SetDefault("email.host", "smtp.gmail.com")
+	viper.SetDefault("email.port", 587)
+	viper.SetDefault("email.username", "")
+	viper.SetDefault("email.password", "")
+	viper.SetDefault("email.from", "")
+	viper.SetDefault("email.use_tls", true)
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

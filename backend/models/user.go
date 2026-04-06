@@ -14,6 +14,8 @@ type User struct {
 	TOTPSecret   string `gorm:"default:''" json:"-"`
 	TOTPEnabled  bool   `gorm:"default:false" json:"totp_enabled"`
 	TOTPVerified bool   `gorm:"default:false" json:"-"`
+	HawkKey      string `gorm:"default:''" json:"-"`
+	HawkEnabled  bool   `gorm:"default:false" json:"hawk_enabled"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

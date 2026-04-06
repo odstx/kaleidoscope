@@ -19,6 +19,12 @@ export async function fillLoginForm(page: Page, user: { email: string; password:
   await page.getByLabel(/密码/i).fill(user.password);
 }
 
+export async function completeLoginForm(page: Page, user: { email: string; password: string }) {
+  await fillLoginForm(page, user);
+  await page.getByRole('button', { name: /登录/i }).click();
+  await page.waitForLoadState('networkidle');
+}
+
 export async function mockApiResponse(
   page: Page,
   urlPattern: string,

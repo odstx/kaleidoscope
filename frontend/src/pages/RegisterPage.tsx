@@ -91,7 +91,7 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">{t("register.title")}</CardTitle>
+          <CardTitle className="text-2xl text-foreground">{t("register.title")}</CardTitle>
           <CardDescription>{t("register.description")}</CardDescription>
         </CardHeader>
         <CardContent>

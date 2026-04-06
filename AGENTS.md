@@ -332,3 +332,10 @@ Remember: The goal is to write code that fits seamlessly into the existing codeb
 所有变更都需要集成测试
 所有变更都需要通过集成测试
 主要工作流程需要自动化测试
+不要使用硬编码
+不要使用明文密钥
+不要把env提交到远程仓库
+不要把密钥提交到远程仓库
+除了翻译和markdown之外不要使用中文
+不要把config文件提交到远程
+后端新增接口需要swagger文档
