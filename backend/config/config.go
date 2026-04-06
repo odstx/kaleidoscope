@@ -21,24 +21,32 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Port        string `mapstructure:"port"`
-	Environment string `mapstructure:"environment"`
+	Host            string `mapstructure:"host"`
+	Port            string `mapstructure:"port"`
+	Environment     string `mapstructure:"environment"`
+	StaticFilesPath string `mapstructure:"static_files_path"`
 }
 
 type DatabaseConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	Name     string `mapstructure:"name"`
-	SSLMode  string `mapstructure:"sslmode"`
+	Host                 string `mapstructure:"host"`
+	Port                 string `mapstructure:"port"`
+	User                 string `mapstructure:"user"`
+	Password             string `mapstructure:"password"`
+	Name                 string `mapstructure:"name"`
+	SSLMode              string `mapstructure:"sslmode"`
+	MaxRetryAttempts     int    `mapstructure:"max_retry_attempts"`
+	RetryIntervalSeconds int    `mapstructure:"retry_interval_seconds"`
+	ConnectionTimeout    int    `mapstructure:"connection_timeout"`
 }
 
 type RedisConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     string `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
+	Host                 string `mapstructure:"host"`
+	Port                 string `mapstructure:"port"`
+	Password             string `mapstructure:"password"`
+	DB                   int    `mapstructure:"db"`
+	MaxRetryAttempts     int    `mapstructure:"max_retry_attempts"`
+	RetryIntervalSeconds int    `mapstructure:"retry_interval_seconds"`
+	ConnectionTimeout    int    `mapstructure:"connection_timeout"`
 }
 
 type LogConfig struct {
@@ -78,18 +86,26 @@ func LoadConfig() (*Config, error) {
 	viper.AddConfigPath("./config")
 
 	// Set defaults
+	viper.SetDefault("server.host", "")
 	viper.SetDefault("server.port", "9000")
 	viper.SetDefault("server.environment", "development")
+	viper.SetDefault("server.static_files_path", "./frontend")
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", "5432")
 	viper.SetDefault("database.user", "postgres")
 	viper.SetDefault("database.password", "postgres")
 	viper.SetDefault("database.name", "kaleidoscope")
 	viper.SetDefault("database.sslmode", "disable")
+	viper.SetDefault("database.max_retry_attempts", 5)
+	viper.SetDefault("database.retry_interval_seconds", 5)
+	viper.SetDefault("database.connection_timeout", 5)
 	viper.SetDefault("redis.host", "localhost")
 	viper.SetDefault("redis.port", "6379")
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
+	viper.SetDefault("redis.max_retry_attempts", 5)
+	viper.SetDefault("redis.retry_interval_seconds", 5)
+	viper.SetDefault("redis.connection_timeout", 5)
 	viper.SetDefault("log.enable_console", true)
 	viper.SetDefault("log.enable_file", true)
 	viper.SetDefault("log.file_path", "logs/app.log")

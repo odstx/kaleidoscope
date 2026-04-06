@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend run macos
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend build run macos deploy
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -75,6 +75,29 @@ build-backend:
 		-X 'kaleidoscope/version.GitCommit=$(GIT_COMMIT)'" \
 		-o kaleidoscope .
 
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+API_BASE_URL ?= 
+
+build:
+	@echo "Building frontend and backend to build directory..."
+	@echo "Target: $(GOOS)/$(GOARCH)"
+	@rm -rf build
+	@mkdir -p build
+	@echo "Building backend..."
+	cd backend && GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags "\
+		-X 'kaleidoscope/version.Version=$(VERSION)' \
+		-X 'kaleidoscope/version.BuildID=$(BUILD_ID)' \
+		-X 'kaleidoscope/version.BuildTime=$(BUILD_TIME)' \
+		-X 'kaleidoscope/version.GitCommit=$(GIT_COMMIT)'" \
+		-o ../build/kaleidoscope .
+	@echo "Building frontend..."
+	cd frontend && VITE_API_BASE_URL="$(API_BASE_URL)" bun run build
+	@echo "Copying config file..."
+	@cp backend/config/config.yaml build/config.yaml
+	@sed -i '' 's/environment: "development"/environment: "production"/' build/config.yaml
+	@echo "Build complete. Output in build/ directory"
+
 frontend:
 	cd frontend && bun run dev
 
@@ -93,3 +116,14 @@ macos:
 	@sleep 1
 	@echo "Launching FrontendApp..."
 	@open swift/FrontendApp.app
+
+deploy:
+	@echo "Deploying to remote server..."
+	@if [ ! -f deploy/.env ]; then \
+		echo "Error: deploy/.env not found"; \
+		echo "Please configure deployment:"; \
+		echo "  1. cp deploy/.env.example deploy/.env"; \
+		echo "  2. Edit deploy/.env with your server details"; \
+		exit 1; \
+	fi
+	@bash deploy/deploy.sh

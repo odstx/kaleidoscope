@@ -40,6 +40,7 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+deploy/.env
 
 # Cache
 .cache
@@ -55,3 +56,6 @@ lerna-debug.log*
 backend/docs
 swift/.build
 swift/*.app
+kaleidoscope
+build
+deploy/deploy-*

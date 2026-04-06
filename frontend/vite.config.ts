@@ -16,4 +16,8 @@ export default defineConfig({
     port: 9001,
     open: true,
   },
+  build: {
+    outDir: '../build/frontend',
+    emptyOutDir: true,
+  },
 })

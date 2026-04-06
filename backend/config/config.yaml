@@ -1,4 +1,5 @@
 server:
+  host: ""
   port: "9000"
   environment: "development"
 

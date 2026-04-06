@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-06
+
+### Added
+- Deployment automation with `make deploy` command
+- Remote deployment script (`deploy/deploy.sh`) supporting Linux and macOS
+- Automatic backup system with configurable retention
+- Cross-platform build support (detects remote OS and architecture)
+- Configurable server host binding in `config.yaml`
+- `API_BASE_URL` environment variable for frontend-backend communication
+
+### Changed
+- Server now reads `host` from config to support custom bind addresses
+- Deployment uses `nohup` for service management (no sudo required)
+- Makefile `build` target copies and configures `config.yaml` for production
+
+### Technical Details
+- Deployment via SSH with automatic OS/architecture detection
+- Service management without systemd dependency
+- Backup rotation with configurable retention (`DEPLOY_KEEP_BACKUPS`)
+- Support for both key-based and password SSH authentication
+
 ## [0.1.0] - 2026-04-03
 
 ### Added

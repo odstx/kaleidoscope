@@ -49,36 +49,6 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 
-	if err := db.DB.Exec(`
-		DO $$ 
-		BEGIN 
-			IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'uid') THEN
-				ALTER TABLE users ADD COLUMN uid text;
-			END IF;
-		END $$;
-	`).Error; err != nil {
-		logger.Fatal("Failed to add uid column", zap.Error(err))
-	}
-
-	if err := db.DB.Exec(`
-		UPDATE users SET uid = gen_random_uuid()::text 
-		WHERE uid IS NULL OR uid = ''
-	`).Error; err != nil {
-		logger.Fatal("Failed to update existing users with uid", zap.Error(err))
-	}
-
-	if err := db.DB.Exec(`
-		ALTER TABLE users ALTER COLUMN uid SET NOT NULL;
-	`).Error; err != nil {
-		logger.Fatal("Failed to set uid not null", zap.Error(err))
-	}
-
-	if err := db.DB.Exec(`
-		CREATE UNIQUE INDEX IF NOT EXISTS idx_users_uid ON users(uid);
-	`).Error; err != nil {
-		logger.Fatal("Failed to create uid unique index", zap.Error(err))
-	}
-
 	if err := db.DB.AutoMigrate(&models.User{}); err != nil {
 		logger.Fatal("Failed to run database migrations", zap.Error(err))
 	}
@@ -112,8 +82,31 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	controllers.RegisterRoutes(router, logger, userService, rateLimiter)
 
+	if config.Server.Environment == "production" {
+		staticPath := config.Server.StaticFilesPath
+		if _, err := os.Stat(staticPath); err == nil {
+			router.NoRoute(func(c *gin.Context) {
+				path := c.Request.URL.Path
+				filePath := staticPath + path
+				if _, err := os.Stat(filePath); os.IsNotExist(err) || path == "/" {
+					c.File(staticPath + "/index.html")
+				} else {
+					c.File(filePath)
+				}
+			})
+			logger.Info("Static files serving enabled", zap.String("path", staticPath))
+		} else {
+			logger.Warn("Static files path not found, skipping static file serving", zap.String("path", staticPath))
+		}
+	}
+
+	addr := fmt.Sprintf(":%s", config.Server.Port)
+	if config.Server.Host != "" {
+		addr = fmt.Sprintf("%s:%s", config.Server.Host, config.Server.Port)
+	}
+
 	httpServer := &http.Server{
-		Addr:    fmt.Sprintf(":%s", config.Server.Port),
+		Addr:    addr,
 		Handler: router,
 	}
 
@@ -127,7 +120,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
-	s.logger.Info("Starting HTTP server", zap.String("port", s.config.Server.Port), zap.String("environment", s.config.Server.Environment))
+	s.logger.Info("Starting HTTP server", zap.String("host", s.config.Server.Host), zap.String("port", s.config.Server.Port), zap.String("environment", s.config.Server.Environment))
 
 	// Start server in a goroutine
 	go func() {
