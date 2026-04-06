@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">应用</string>
+    
+    <string name="login_title">登录</string>
+    <string name="login_email">邮箱</string>
+    <string name="login_password">密码</string>
+    <string name="login_button">登录</string>
+    <string name="login_no_account">还没有账号？</string>
+    <string name="login_register_link">注册</string>
+    <string name="login_email_required">请输入邮箱</string>
+    <string name="login_email_invalid">邮箱格式不正确</string>
+    <string name="login_password_required">请输入密码</string>
+    <string name="login_password_min">密码至少需要8个字符</string>
+    
+    <string name="register_title">注册</string>
+    <string name="register_email">邮箱</string>
+    <string name="register_password">密码</string>
+    <string name="register_username">用户名</string>
+    <string name="register_name">姓名</string>
+    <string name="register_button">注册</string>
+    <string name="register_have_account">已有账号？</string>
+    <string name="register_login_link">登录</string>
+    
+    <string name="dashboard_title">仪表板</string>
+    <string name="dashboard_welcome">欢迎回来！</string>
+    
+    <string name="profile_title">个人资料</string>
+    <string name="profile_edit">编辑资料</string>
+    <string name="profile_save">保存</string>
+    <string name="profile_logout">退出登录</string>
+    <string name="profile_name">姓名</string>
+    <string name="profile_bio">简介</string>
+    <string name="profile_email">邮箱</string>
+    <string name="profile_username">用户名</string>
+    
+    <string name="nav_dashboard">仪表板</string>
+    <string name="nav_profile">个人资料</string>
+    
+    <string name="error_generic">发生错误</string>
+    <string name="error_network">网络错误，请检查您的连接。</string>
+    <string name="error_unauthorized">未授权，请重新登录。</string>
+    
+    <string name="loading">加载中…</string>
+</resources>

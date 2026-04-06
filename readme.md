@@ -4,47 +4,31 @@
 [![Test Coverage](https://img.shields.io/badge/coverage-auto-brightgreen)](https://github.com/odstx/kaleidoscope/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-全栈应用，Go 后端 + React 前端，分层架构设计。
+Harness 驱动的全栈应用。
 
-## 特性
+## 技术栈
 
-### 后端
-- **分层架构** - Controllers、Services、Models、Middleware 清晰分离
-- **JWT 认证** - 完整的用户注册登录流程
-- **Rate Limiting** - 基于 Redis 的请求限流
-- **OpenTelemetry** - 分布式追踪和可观测性
-- **结构化日志** - Zap 高性能日志
-- **优雅关闭** - 信号处理和优雅关闭
-- **Swagger 文档** - 自动生成 API 文档
+### 后端 (Go 1.25)
+Gin + GORM + PostgreSQL + Redis，分层架构（Controllers、Services、Models、Middleware），JWT 认证，Rate Limiting，OpenTelemetry，Zap 日志，Swagger 文档
 
-### 前端 (React)
-- **React 19** - 最新 React 特性
-- **TypeScript** - strict 模式，完整类型安全
-- **TailwindCSS 4** - 原子化 CSS
-- **shadcn/ui** - 可访问性组件库
-- **i18next** - 多语言支持
-- **表单验证** - react-hook-form + zod
-- **路由守卫** - React Router v7
+### 前端 (React 19 + Vite 8)
+TypeScript strict 模式，TailwindCSS 4，shadcn/ui，i18next 多语言，react-hook-form + zod 表单验证，React Router v7
 
-### 前端 (Swift)
-- **SwiftUI** - 声明式 UI 框架
-- **跨平台** - 支持 macOS 和 iOS
-- **i18n** - 多语言支持 (英文/中文)
-- **MVVM** - 清晰的架构分层
-- **API Service** - 与后端完整集成
-- **测试** - 单元测试和集成测试
+### 前端 (SwiftUI)
+跨平台 macOS/iOS，MVVM 架构，多语言支持，完整 API 集成
+
+### 前端 (Kotlin + Compose)
+Android 应用，Jetpack Compose UI，Hilt 依赖注入，Retrofit + OkHttp 网络层，DataStore 本地存储，MVVM 架构
 
 ### 测试
-- **单元测试** - Vitest + React Testing Library
-- **集成测试** - API 集成测试
-- **E2E 测试** - Playwright
-- **Mock** - MSW (Mock Service Worker)
+Vitest + React Testing Library 单元测试，Playwright E2E 测试，MSW Mock
 
 ## 文档
 
-- [协作文档](./COLLABORATION.md) - 技术栈、快速开始、常用命令
-- [开发规范](./AGENTS.md) - 代码规范、架构设计、最佳实践
-- [贡献指南](./CONTRIBUTING.md) - 开发流程、提交规范、PR 流程
+- [协作文档](./COLLABORATION.md) - 快速开始、常用命令、部署
+- [开发规范](./AGENTS.md) - 代码规范、架构设计
+- [贡献指南](./CONTRIBUTING.md) - 开发流程、PR 规范
+- [安装部署](./install.md) - 环境配置、部署流程
 
 ## License
 

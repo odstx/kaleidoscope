@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">App</string>
+    
+    <string name="login_title">Login</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Login</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="login_register_link">Register</string>
+    <string name="login_email_required">Email is required</string>
+    <string name="login_email_invalid">Invalid email address</string>
+    <string name="login_password_required">Password is required</string>
+    <string name="login_password_min">Password must be at least 8 characters</string>
+    
+    <string name="register_title">Register</string>
+    <string name="register_email">Email</string>
+    <string name="register_password">Password</string>
+    <string name="register_username">Username</string>
+    <string name="register_name">Name</string>
+    <string name="register_button">Register</string>
+    <string name="register_have_account">Already have an account?</string>
+    <string name="register_login_link">Login</string>
+    
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_welcome">Welcome back!</string>
+    
+    <string name="profile_title">Profile</string>
+    <string name="profile_edit">Edit Profile</string>
+    <string name="profile_save">Save</string>
+    <string name="profile_logout">Logout</string>
+    <string name="profile_name">Name</string>
+    <string name="profile_bio">Bio</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_username">Username</string>
+    
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_profile">Profile</string>
+    
+    <string name="error_generic">An error occurred</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="error_unauthorized">Unauthorized. Please login again.</string>
+    
+    <string name="loading">Loading…</string>
+</resources>

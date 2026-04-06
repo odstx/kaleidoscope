@@ -60,4 +60,5 @@ kaleidoscope
 build
 deploy/deploy-*
 config.yaml
+progress.md
 
