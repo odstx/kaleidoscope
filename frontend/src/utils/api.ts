@@ -99,3 +99,45 @@ export async function disableTOTP(): Promise<void> {
     throw new Error(error.error || 'Failed to disable TOTP');
   }
 }
+
+export interface HawkSetupResponse {
+  key: string;
+}
+
+export async function setupHawk(): Promise<HawkSetupResponse> {
+  const response = await fetch(`${getBaseUrl()}/api/v1/users/hawk/setup`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to setup Hawk');
+  }
+
+  return response.json();
+}
+
+export async function enableHawk(): Promise<void> {
+  const response = await fetch(`${getBaseUrl()}/api/v1/users/hawk/enable`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to enable Hawk');
+  }
+}
+
+export async function disableHawk(): Promise<void> {
+  const response = await fetch(`${getBaseUrl()}/api/v1/users/hawk/disable`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to disable Hawk');
+  }
+}

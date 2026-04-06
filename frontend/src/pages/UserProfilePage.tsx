@@ -12,6 +12,7 @@ interface UserInfo {
   id?: number
   uid?: string
   totp_enabled?: boolean
+  hawk_enabled?: boolean
 }
 
 export default function UserProfilePage() {
@@ -25,6 +26,9 @@ export default function UserProfilePage() {
   const [totpUrl, setTotpUrl] = useState<string | null>(null)
   const [totpCode, setTotpCode] = useState("")
   const [totpError, setTotpError] = useState<string | null>(null)
+  const [hawkLoading, setHawkLoading] = useState(false)
+  const [hawkKey, setHawkKey] = useState<string | null>(null)
+  const [hawkError, setHawkError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -166,6 +170,89 @@ export default function UserProfilePage() {
     }
   }
 
+  const handleSetupHawk = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    setHawkLoading(true)
+    setHawkError(null)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/hawk/setup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(t("profile.hawk.setupError"))
+      }
+
+      const data = await response.json()
+      setHawkKey(data.key)
+    } catch (error) {
+      setHawkError(error instanceof Error ? error.message : t("profile.hawk.setupError"))
+    } finally {
+      setHawkLoading(false)
+    }
+  }
+
+  const handleEnableHawk = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    setHawkLoading(true)
+    setHawkError(null)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/hawk/enable`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(t("profile.hawk.enableError"))
+      }
+
+      setHawkKey(null)
+      setUser(prev => prev ? { ...prev, hawk_enabled: true } : null)
+    } catch (error) {
+      setHawkError(error instanceof Error ? error.message : t("profile.hawk.enableError"))
+    } finally {
+      setHawkLoading(false)
+    }
+  }
+
+  const handleDisableHawk = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) return
+
+    setHawkLoading(true)
+    setHawkError(null)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/hawk/disable`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(t("profile.hawk.disableError"))
+      }
+
+      setUser(prev => prev ? { ...prev, hawk_enabled: false } : null)
+    } catch (error) {
+      setHawkError(error instanceof Error ? error.message : t("profile.hawk.disableError"))
+    } finally {
+      setHawkLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -177,7 +264,7 @@ export default function UserProfilePage() {
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold">{t("profile.title")}</h1>
+        <h1 className="text-3xl font-bold text-foreground">{t("profile.title")}</h1>
 
         <Card>
           <CardHeader>
@@ -257,6 +344,45 @@ export default function UserProfilePage() {
             ) : (
               <Button onClick={handleSetupTOTP} disabled={totpLoading}>
                 {totpLoading ? t("common.loading") : t("profile.totp.setup")}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("profile.hawk.title")}</CardTitle>
+            <CardDescription>{t("profile.hawk.description")}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {hawkError && (
+              <div className="mb-4 rounded-md bg-destructive/10 p-3 text-destructive">
+                {hawkError}
+              </div>
+            )}
+            
+            {user?.hawk_enabled ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">{t("profile.hawk.enabled")}</span>
+                  <Button variant="destructive" onClick={handleDisableHawk} disabled={hawkLoading}>
+                    {hawkLoading ? t("common.loading") : t("profile.hawk.disable")}
+                  </Button>
+                </div>
+              </div>
+            ) : hawkKey ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{t("profile.hawk.saveKey")}</p>
+                  <code className="block p-2 bg-muted rounded text-sm font-mono break-all">{hawkKey}</code>
+                </div>
+                <Button onClick={handleEnableHawk} disabled={hawkLoading}>
+                  {hawkLoading ? t("common.loading") : t("profile.hawk.enable")}
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={handleSetupHawk} disabled={hawkLoading}>
+                {hawkLoading ? t("common.loading") : t("profile.hawk.setup")}
               </Button>
             )}
           </CardContent>

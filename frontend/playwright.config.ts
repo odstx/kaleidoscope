@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:8001',
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:9001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -20,7 +20,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'bun run dev',
     url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:9001',
     reuseExistingServer: true,
     timeout: 120 * 1000,
