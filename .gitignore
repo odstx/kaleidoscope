@@ -59,3 +59,5 @@ swift/*.app
 kaleidoscope
 build
 deploy/deploy-*
+config.yaml
+

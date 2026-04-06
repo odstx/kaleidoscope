@@ -72,10 +72,87 @@ type RateLimitConfig struct {
 }
 
 type OTELConfig struct {
-	Enabled      bool   `mapstructure:"enabled"`
-	ServiceName  string `mapstructure:"service_name"`
-	ExporterHost string `mapstructure:"exporter_host"`
-	ExporterPort string `mapstructure:"exporter_port"`
+	Enabled           bool               `mapstructure:"enabled"`
+	ServiceName       string             `mapstructure:"service_name"`
+	CollectorURL      string             `mapstructure:"collector_url"`
+	TracesExporter    string             `mapstructure:"traces_exporter"`
+	MetricsExporter   string             `mapstructure:"metrics_exporter"`
+	LogsExporter      string             `mapstructure:"logs_exporter"`
+	SamplingRate      float64            `mapstructure:"sampling_rate"`
+	PropagationFormat string             `mapstructure:"propagation_format"`
+	Headers           []OTELHeaderConfig `mapstructure:"headers"`
+}
+
+type OTELHeaderConfig struct {
+	Name  string `mapstructure:"name"`
+	Value string `mapstructure:"value"`
+}
+
+func generateDefaultConfig(path string) error {
+	config := `server:
+  host: ""
+  port: "9000"
+  environment: "development"
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "postgres"
+  password: "postgres"
+  name: "kaleidoscope"
+  sslmode: "disable"
+
+redis:
+  host: "localhost"
+  port: "6379"
+  password: ""
+  db: 0
+
+log:
+  enable_console: true
+  enable_file: true
+  file_path: "logs/app.log"
+  max_size: 100
+  max_backups: 3
+  max_age: 30
+  compress: true
+
+cors:
+  allow_origins:
+    - "*"
+  allow_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allow_headers:
+    - "Origin"
+    - "Content-Type"
+    - "Accept"
+    - "Authorization"
+  allow_credentials: true
+
+rate_limit:
+  enabled: true
+  requests_per_minute: 60
+
+otel:
+  enabled: false
+  service_name: "kaleidoscope"
+  collector_url: "http://localhost:4318"
+  traces_exporter: "otlp"
+  metrics_exporter: "otlp"
+  logs_exporter: "otlp"
+  sampling_rate: 1.0
+  propagation_format: "w3c"
+  headers: []
+`
+	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
+		return fmt.Errorf("failed to write default config: %w", err)
+	}
+	fmt.Printf("Generated default config at: %s\n", path)
+	return nil
 }
 
 // LoadConfig reads configuration from file or environment variables
@@ -121,16 +198,28 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("rate_limit.requests_per_minute", 60)
 	viper.SetDefault("otel.enabled", false)
 	viper.SetDefault("otel.service_name", "kaleidoscope")
-	viper.SetDefault("otel.exporter_host", "localhost")
-	viper.SetDefault("otel.exporter_port", "4317")
+	viper.SetDefault("otel.collector_url", "http://localhost:4318")
+	viper.SetDefault("otel.traces_exporter", "otlp")
+	viper.SetDefault("otel.metrics_exporter", "otlp")
+	viper.SetDefault("otel.logs_exporter", "otlp")
+	viper.SetDefault("otel.sampling_rate", 1.0)
+	viper.SetDefault("otel.propagation_format", "w3c")
+	viper.SetDefault("otel.headers", []interface{}{})
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			configPath := "config.yaml"
+			if err := generateDefaultConfig(configPath); err != nil {
+				return nil, err
+			}
+			viper.SetConfigFile(configPath)
+			if err := viper.ReadInConfig(); err != nil {
+				return nil, fmt.Errorf("failed to read generated config: %w", err)
+			}
+		} else {
 			return nil, fmt.Errorf("config file found but another error occurred: %w", err)
 		}
-		// Config file not found; ignore error if it's expected
-		fmt.Println("No config file found, using defaults and environment variables")
 	}
 
 	// Override with environment variables

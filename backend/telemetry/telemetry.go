@@ -3,9 +3,12 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"os"
+	"strings"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -26,15 +29,40 @@ func InitTelemetry(ctx context.Context, cfg *config.Config, logger *zap.Logger) 
 		return &Telemetry{logger: logger}, nil
 	}
 
-	exporterEndpoint := fmt.Sprintf("%s:%s", cfg.OTEL.ExporterHost, cfg.OTEL.ExporterPort)
 	logger.Info("Initializing OpenTelemetry",
 		zap.String("service_name", cfg.OTEL.ServiceName),
-		zap.String("endpoint", exporterEndpoint))
+		zap.String("collector_url", cfg.OTEL.CollectorURL))
 
-	exporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithEndpoint(exporterEndpoint),
-		otlptracegrpc.WithInsecure(),
-	)
+	headers := make(map[string]string)
+	for _, h := range cfg.OTEL.Headers {
+		value := h.Value
+		if strings.Contains(value, "${") {
+			value = os.ExpandEnv(value)
+		}
+		headers[h.Name] = value
+	}
+
+	collectorURL, err := url.Parse(cfg.OTEL.CollectorURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse collector URL: %w", err)
+	}
+
+	opts := []otlptracehttp.Option{
+		otlptracehttp.WithEndpoint(collectorURL.Host),
+		otlptracehttp.WithHeaders(headers),
+	}
+
+	if collectorURL.Scheme == "https" {
+		opts = append(opts, otlptracehttp.WithTLSClientConfig(nil))
+	} else {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+
+	if collectorURL.Path != "" {
+		opts = append(opts, otlptracehttp.WithURLPath(collectorURL.Path))
+	}
+
+	exporter, err := otlptracehttp.New(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
