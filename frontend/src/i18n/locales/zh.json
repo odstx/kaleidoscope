@@ -24,7 +24,9 @@
     "submitting": "登录中...",
     "goToRegister": "去注册",
     "loginFailed": "登录失败",
-    "loginError": "登录过程中发生错误"
+    "loginError": "登录过程中发生错误",
+    "totpCode": "TOTP 验证码",
+    "totpPlaceholder": "请输入6位验证码"
   },
   "register": {
     "title": "用户注册",
@@ -50,10 +52,6 @@
   },
   "dashboard": {
     "title": "控制面板",
-    "quickActions": "快速操作",
-    "quickActionsDesc": "常用功能入口",
-    "viewProfile": "查看个人信息",
-    "changePassword": "修改密码",
     "welcome": "欢迎使用",
     "welcomeDesc": "这是您的个人控制面板",
     "welcomeMessage": "您已成功登录系统。在这里您可以管理您的个人信息、查看系统状态以及进行其他操作。"
@@ -66,7 +64,24 @@
     "accountDetailsDesc": "您的个人信息",
     "email": "邮箱:",
     "userId": "用户ID:",
-    "fetchError": "获取用户信息失败"
+    "uid": "UID:",
+    "fetchError": "获取用户信息失败",
+    "totp": {
+      "title": "两步验证",
+      "description": "使用 TOTP 增强账户安全",
+      "enabled": "TOTP 已启用",
+      "setup": "设置 TOTP",
+      "disable": "禁用 TOTP",
+      "scanQR": "使用验证器应用扫描此二维码：",
+      "secret": "密钥：",
+      "enterCode": "输入验证器应用中的6位验证码：",
+      "codePlaceholder": "6位验证码",
+      "verify": "验证并启用",
+      "setupError": "设置 TOTP 失败",
+      "verifyError": "TOTP 验证码无效",
+      "enableError": "启用 TOTP 失败",
+      "disableError": "禁用 TOTP 失败"
+    }
   },
   "footer": {
     "loading": "加载中...",

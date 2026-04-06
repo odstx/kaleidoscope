@@ -4,7 +4,9 @@
 [![Test Coverage](https://img.shields.io/badge/coverage-auto-brightgreen)](https://github.com/odstx/kaleidoscope/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Harness 驱动的全栈应用。
+Harness 驱动的应用。
+
+
 
 ## 文档
 

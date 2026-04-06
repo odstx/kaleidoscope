@@ -24,10 +24,18 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/register", rateLimiter.RateLimit(), userController.Register)
 				userGroup.POST("/login", rateLimiter.RateLimit(), userController.Login)
 				userGroup.GET("/info", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.GetUserInfo)
+				userGroup.POST("/totp/setup", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.SetupTOTP)
+				userGroup.POST("/totp/verify", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.VerifyTOTP)
+				userGroup.POST("/totp/enable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.EnableTOTP)
+				userGroup.POST("/totp/disable", middleware.JWTAuth(), rateLimiter.RateLimit(), userController.DisableTOTP)
 			} else {
 				userGroup.POST("/register", userController.Register)
 				userGroup.POST("/login", userController.Login)
 				userGroup.GET("/info", middleware.JWTAuth(), userController.GetUserInfo)
+				userGroup.POST("/totp/setup", middleware.JWTAuth(), userController.SetupTOTP)
+				userGroup.POST("/totp/verify", middleware.JWTAuth(), userController.VerifyTOTP)
+				userGroup.POST("/totp/enable", middleware.JWTAuth(), userController.EnableTOTP)
+				userGroup.POST("/totp/disable", middleware.JWTAuth(), userController.DisableTOTP)
 			}
 		}
 

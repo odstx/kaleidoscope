@@ -93,26 +93,6 @@ describe('Dashboard Integration Tests', () => {
       expect(screen.getByText(testUser.email)).toBeInTheDocument()
     })
 
-    it('should display quick action buttons', async () => {
-      localStorage.setItem('token', 'fake-jwt-token')
-
-      server.use(
-        http.get('http://localhost:9000/api/v1/users/info', () => {
-          return HttpResponse.json(testUser)
-        })
-      )
-
-      window.history.pushState({}, '', '/dashboard')
-      renderWithRouter(<App />)
-
-      await waitFor(() => {
-        expect(screen.getByText(/快速操作/i)).toBeInTheDocument()
-      })
-
-      expect(screen.getByRole('button', { name: /查看个人信息/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /修改密码/i })).toBeInTheDocument()
-    })
-
     it('should display welcome card', async () => {
       localStorage.setItem('token', 'fake-jwt-token')
 

@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
@@ -16,6 +17,9 @@ export default function LoginPage() {
   const { login } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [totpRequired, setTotpRequired] = useState(false)
+  const [totpCode, setTotpCode] = useState("")
+  const [pendingCredentials, setPendingCredentials] = useState<{ email: string; password: string } | null>(null)
 
   const loginSchema = z.object({
     email: z.string().email({ message: t('login.emailInvalid') }),
@@ -32,28 +36,52 @@ export default function LoginPage() {
     },
   })
 
+  const handleLogin = async (email: string, password: string, totp?: string) => {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password, totp_code: totp }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      if (errorData.totp_required) {
+        setTotpRequired(true)
+        setPendingCredentials({ email, password })
+        return
+      }
+      throw new Error(errorData.error || t('login.loginFailed'))
+    }
+
+    const result = await response.json()
+    login(result.token)
+    navigate("/dashboard")
+  }
+
   const onSubmit = async (data: LoginFormValues) => {
     setLoading(true)
     setError(null)
-    
+
     try {
-      // TODO: Replace with actual API call to backend
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-      
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || t('login.loginFailed'))
-      }
-      
-      const result = await response.json()
-      login(result.token)
-      navigate("/dashboard")
+      await handleLogin(data.email, data.password)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('login.loginError')
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onSubmitTotp = async () => {
+    if (!pendingCredentials || !totpCode) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      await handleLogin(pendingCredentials.email, pendingCredentials.password, totpCode)
     } catch (err) {
       const message = err instanceof Error ? err.message : t('login.loginError')
       setError(message)
@@ -70,44 +98,66 @@ export default function LoginPage() {
           <CardDescription>{t('login.description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {!totpRequired ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {error && (
+                  <div className="rounded-md bg-destructive/10 p-3 text-destructive">
+                    {error}
+                  </div>
+                )}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('login.email')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('login.emailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('login.password')}</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder={t('login.passwordPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? t('login.submitting') : t('login.submit')}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <div className="space-y-4">
               {error && (
                 <div className="rounded-md bg-destructive/10 p-3 text-destructive">
                   {error}
                 </div>
               )}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('login.email')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('login.emailPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('login.password')}</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder={t('login.passwordPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={loading}>
+              <div className="space-y-2">
+                <Label>{t('login.totpCode')}</Label>
+                <Input
+                  placeholder={t('login.totpPlaceholder')}
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  maxLength={6}
+                />
+              </div>
+              <Button onClick={onSubmitTotp} className="w-full" disabled={loading || totpCode.length !== 6}>
                 {loading ? t('login.submitting') : t('login.submit')}
               </Button>
-            </form>
-          </Form>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <div className="text-center w-full">

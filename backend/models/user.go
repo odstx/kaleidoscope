@@ -6,11 +6,14 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primaryKey;autoIncrement" json:"id"`
-	UID      string `gorm:"uniqueIndex;not null" json:"uid"`
-	Username string `gorm:"uniqueIndex;not null" json:"username"`
-	Email    string `gorm:"uniqueIndex;not null" json:"email"`
-	Password string `gorm:"not null" json:"password"`
+	ID           uint   `gorm:"primaryKey;autoIncrement" json:"id"`
+	UID          string `gorm:"uniqueIndex;not null" json:"uid"`
+	Username     string `gorm:"uniqueIndex;not null" json:"username"`
+	Email        string `gorm:"uniqueIndex;not null" json:"email"`
+	Password     string `gorm:"not null" json:"password"`
+	TOTPSecret   string `gorm:"default:''" json:"-"`
+	TOTPEnabled  bool   `gorm:"default:false" json:"totp_enabled"`
+	TOTPVerified bool   `gorm:"default:false" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

@@ -20,6 +20,18 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+	TOTPCode string `json:"totp_code"`
+}
+
+// TOTPSetupResponse represents the response for TOTP setup
+type TOTPSetupResponse struct {
+	Secret string `json:"secret"`
+	URL    string `json:"url"`
+}
+
+// TOTPVerifyRequest represents the request body for TOTP verification
+type TOTPVerifyRequest struct {
+	Code string `json:"code" binding:"required"`
 }
 
 // UserController handles user-related operations
@@ -88,9 +100,17 @@ func (uc *UserController) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := uc.userService.Login(req.Email, req.Password)
+	user, err := uc.userService.LoginWithTOTP(req.Email, req.Password, req.TOTPCode)
 	if err != nil {
 		uc.logger.Error("Login failed", zap.Error(err))
+		if err.Error() == "TOTP code required" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "TOTP code required", "totp_required": true})
+			return
+		}
+		if err.Error() == "invalid TOTP code" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid TOTP code"})
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
@@ -108,11 +128,90 @@ func (uc *UserController) Login(c *gin.Context) {
 
 func (uc *UserController) GetUserInfo(c *gin.Context) {
 	userID := c.GetUint("userID")
-	email, _ := c.Get("email")
+
+	user, err := uc.userService.GetUserByID(userID)
+	if err != nil {
+		uc.logger.Error("Failed to get user info", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		return
+	}
 
 	uc.logger.Info("Get user info request", zap.Uint("userID", userID))
 	c.JSON(http.StatusOK, gin.H{
-		"id":    userID,
-		"email": email,
+		"id":           user.ID,
+		"uid":          user.UID,
+		"email":        user.Email,
+		"totp_enabled": user.TOTPEnabled,
 	})
+}
+
+func (uc *UserController) SetupTOTP(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Setup TOTP request", zap.Uint("userID", userID))
+
+	secret, url, err := uc.userService.GenerateTOTP(userID)
+	if err != nil {
+		uc.logger.Error("Failed to setup TOTP", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to setup TOTP"})
+		return
+	}
+
+	c.JSON(http.StatusOK, TOTPSetupResponse{
+		Secret: secret,
+		URL:    url,
+	})
+}
+
+func (uc *UserController) VerifyTOTP(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	var req TOTPVerifyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		uc.logger.Error("Invalid TOTP verify request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	verified, err := uc.userService.VerifyTOTP(userID, req.Code)
+	if err != nil {
+		uc.logger.Error("Failed to verify TOTP", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify TOTP"})
+		return
+	}
+
+	if !verified {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid TOTP code"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "TOTP verified successfully"})
+}
+
+func (uc *UserController) EnableTOTP(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Enable TOTP request", zap.Uint("userID", userID))
+
+	if err := uc.userService.EnableTOTP(userID); err != nil {
+		uc.logger.Error("Failed to enable TOTP", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "TOTP enabled successfully"})
+}
+
+func (uc *UserController) DisableTOTP(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	uc.logger.Info("Disable TOTP request", zap.Uint("userID", userID))
+
+	if err := uc.userService.DisableTOTP(userID); err != nil {
+		uc.logger.Error("Failed to disable TOTP", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "TOTP disabled successfully"})
 }

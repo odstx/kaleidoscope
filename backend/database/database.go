@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.opentelemetry.io/otel"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 
 	"kaleidoscope/config"
 )
@@ -17,9 +19,7 @@ type Database struct {
 	Redis *redis.Client
 }
 
-// Init initializes both PostgreSQL and Redis connections using the provided config
 func Init(cfg *config.Config) (*Database, error) {
-	// Initialize PostgreSQL with retry
 	db, err := InitPostgreSQLWithRetry(
 		cfg.Database.Host,
 		cfg.Database.Port,
@@ -34,7 +34,12 @@ func Init(cfg *config.Config) (*Database, error) {
 		return nil, fmt.Errorf("failed to initialize PostgreSQL after %d attempts: %w", cfg.Database.MaxRetryAttempts, err)
 	}
 
-	// Initialize Redis with retry
+	if cfg.OTEL.Enabled {
+		if err := EnableTracing(db); err != nil {
+			return nil, fmt.Errorf("failed to enable database tracing: %w", err)
+		}
+	}
+
 	redisClient, err := InitRedisWithRetry(
 		cfg.Redis.Host,
 		cfg.Redis.Port,
@@ -86,6 +91,18 @@ func InitPostgreSQLWithRetry(host, port, user, password, dbname, sslmode string,
 	}
 
 	return nil, fmt.Errorf("failed to connect to postgresql after %d attempts", maxAttempts)
+}
+
+func EnableTracing(db *gorm.DB) error {
+	if db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+
+	plugin := tracing.NewPlugin(
+		tracing.WithTracerProvider(otel.GetTracerProvider()),
+	)
+
+	return db.Use(plugin)
 }
 
 func InitRedis(host, port, password string, db int) (*redis.Client, error) {
