@@ -1,5 +1,9 @@
 # React + TypeScript + Vite
 
+[![Frontend Build](https://github.com/odstx/kaleidoscope/actions/workflows/frontend.yml/badge.svg)](https://github.com/odstx/kaleidoscope/actions/workflows/frontend.yml)
+[![Backend Build](https://github.com/odstx/kaleidoscope/actions/workflows/backend.yml/badge.svg)](https://github.com/odstx/kaleidoscope/actions/workflows/backend.yml)
+[![E2E Tests](https://github.com/odstx/kaleidoscope/actions/workflows/e2e.yml/badge.svg)](https://github.com/odstx/kaleidoscope/actions/workflows/e2e.yml)
+
 ## Environment Configuration
 
 - `.env` - Development environment
