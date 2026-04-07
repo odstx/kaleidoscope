@@ -20,28 +20,6 @@ struct DashboardView: View {
                         .fontWeight(.bold)
                     
                     VStack(spacing: 16) {
-                        CardView(title: t.quickActions, subtitle: t.quickActionsDesc) {
-                            VStack(spacing: 12) {
-                                Button(action: { router.navigate(to: .profile) }) {
-                                    Text(t.viewProfile)
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.accentColor)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(8)
-                                }
-                                
-                                Button(action: { }) {
-                                    Text(t.changePassword)
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.secondary.opacity(0.2))
-                                        .foregroundColor(.primary)
-                                        .cornerRadius(8)
-                                }
-                            }
-                        }
-                        
                         CardView(title: t.welcome, subtitle: t.welcomeDesc) {
                             Text(t.welcomeMessage)
                                 .foregroundColor(.secondary)

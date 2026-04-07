@@ -1,5 +1,5 @@
 import XCTest
-@testable import FrontendApp
+@testable import Kaleidoscope
 
 final class LocalizationTests: XCTestCase {
     func testEnglishTranslations() {

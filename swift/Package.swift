@@ -1,22 +1,22 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.1
 import PackageDescription
 
 let package = Package(
-    name: "FrontendApp",
+    name: "Kaleidoscope",
     platforms: [
         .iOS(.v17),
         .macOS(.v14)
     ],
     products: [
-        .executable(name: "FrontendApp", targets: ["FrontendApp"])
+        .executable(name: "Kaleidoscope", targets: ["Kaleidoscope"])
     ],
     targets: [
         .executableTarget(
-            name: "FrontendApp",
+            name: "Kaleidoscope",
             path: "Sources"),
         .testTarget(
-            name: "FrontendAppTests",
-            dependencies: ["FrontendApp"],
-            path: "Tests/FrontendAppTests")
+            name: "KaleidoscopeTests",
+            dependencies: ["Kaleidoscope"],
+            path: "Tests/KaleidoscopeTests")
     ]
 )

@@ -1,5 +1,5 @@
 import XCTest
-@testable import FrontendApp
+@testable import Kaleidoscope
 
 final class ModelTests: XCTestCase {
     func testUserInitialization() {
