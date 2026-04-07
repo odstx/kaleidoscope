@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import { Link } from "react-router-dom"
 
+const APP_NAME = import.meta.env.VITE_APP_NAME || "Kaleidoscope"
+
 export default function RegisterPage() {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -91,7 +93,7 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-foreground">{t("register.title")}</CardTitle>
+          <CardTitle className="text-2xl text-foreground">{APP_NAME} - {t("register.title")}</CardTitle>
           <CardDescription>{t("register.description")}</CardDescription>
         </CardHeader>
         <CardContent>

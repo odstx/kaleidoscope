@@ -9,6 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link } from "react-router-dom"
 
+const APP_NAME = import.meta.env.VITE_APP_NAME || "Kaleidoscope"
+
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
@@ -59,7 +61,7 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-foreground">{t('forgotPassword.title')}</CardTitle>
+          <CardTitle className="text-2xl text-foreground">{`${APP_NAME} - ${t('forgotPassword.title')}`}</CardTitle>
           <CardDescription>{t('forgotPassword.description')}</CardDescription>
         </CardHeader>
         <CardContent>
