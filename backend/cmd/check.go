@@ -22,7 +22,7 @@ var checkCmd = &cobra.Command{
 	Short: "Check email, Redis, and PostgreSQL configurations",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Load configuration
-		cfg, err := config.LoadConfig()
+		cfg, err := config.LoadConfig(cfgFile)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 			os.Exit(1)

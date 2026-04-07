@@ -338,4 +338,4 @@ Remember: The goal is to write code that fits seamlessly into the existing codeb
 不要把密钥提交到远程仓库
 除了翻译和markdown之外不要使用中文
 不要把config文件提交到远程
-后端新增接口需要swagger文档
+后端变更接口需要更新swagger文档

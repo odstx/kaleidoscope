@@ -46,6 +46,26 @@ func (c *Client) EnqueueSendWelcomeEmail(ctx context.Context, userID uint, usern
 	return err
 }
 
+// EnqueueSendPasswordResetEmail enqueues a password reset email task
+func (c *Client) EnqueueSendPasswordResetEmail(ctx context.Context, userID uint, username, email, token string) error {
+	payload := SendPasswordResetEmailPayload{
+		UserID:   userID,
+		Username: username,
+		Email:    email,
+		Token:    token,
+	}
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	task := asynq.NewTask(string(TaskSendPasswordResetEmail), payloadBytes, asynq.Queue("default"))
+
+	_, err = c.client.EnqueueContext(ctx, task)
+	return err
+}
+
 // Close closes the client connection
 func (c *Client) Close() error {
 	return c.client.Close()

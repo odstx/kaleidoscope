@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"kaleidoscope/models"
 	"kaleidoscope/utils"
 	"kaleidoscope/worker"
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -267,6 +269,75 @@ func (s *UserService) DisableHawk(userID uint) error {
 	user.HawkEnabled = false
 	if err := s.db.Save(&user).Error; err != nil {
 		return fmt.Errorf("failed to disable Hawk: %w", err)
+	}
+
+	return nil
+}
+
+func (s *UserService) ForgotPassword(email string) error {
+	if email == "" {
+		return errors.New("email is required")
+	}
+
+	var user models.User
+	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return fmt.Errorf("database error while finding user: %w", err)
+	}
+
+	token := uuid.New().String()
+	expiresAt := time.Now().Add(1 * time.Hour).Unix()
+
+	user.ResetToken = token
+	user.ResetTokenExpiresAt = expiresAt
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to save reset token: %w", err)
+	}
+
+	if s.client != nil {
+		if err := s.client.EnqueueSendPasswordResetEmail(context.Background(), user.ID, user.Username, user.Email, token); err != nil {
+			fmt.Printf("Warning: failed to enqueue password reset email: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *UserService) ResetPassword(token, newPassword string) error {
+	if token == "" {
+		return errors.New("token is required")
+	}
+	if newPassword == "" {
+		return errors.New("password is required")
+	}
+	if len(newPassword) < 8 {
+		return errors.New("password must be at least 8 characters long")
+	}
+
+	var user models.User
+	if err := s.db.Where("reset_token = ?", token).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("invalid or expired reset token")
+		}
+		return fmt.Errorf("database error while finding user: %w", err)
+	}
+
+	if time.Now().Unix() > user.ResetTokenExpiresAt {
+		return errors.New("reset token has expired")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	user.Password = string(hashedPassword)
+	user.ResetToken = ""
+	user.ResetTokenExpiresAt = 0
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
 	}
 
 	return nil

@@ -88,7 +88,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		AllowCredentials: config.CORS.AllowCredentials,
 	}))
 
-	controllers.RegisterRoutes(router, logger, userService, rateLimiter)
+	controllers.RegisterRoutes(router, logger, userService, rateLimiter, config, db.DB)
 
 	if config.Server.Environment == "production" {
 		staticPath := config.Server.StaticFilesPath

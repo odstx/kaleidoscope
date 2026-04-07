@@ -6,6 +6,8 @@ type TaskType string
 const (
 	// TaskSendWelcomeEmail represents a task to send a welcome email
 	TaskSendWelcomeEmail TaskType = "send_welcome_email"
+	// TaskSendPasswordResetEmail represents a task to send a password reset email
+	TaskSendPasswordResetEmail TaskType = "send_password_reset_email"
 )
 
 // Payload fields for TaskSendWelcomeEmail
@@ -13,4 +15,12 @@ type SendWelcomeEmailPayload struct {
 	UserID   uint   `json:"user_id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+}
+
+// Payload fields for TaskSendPasswordResetEmail
+type SendPasswordResetEmailPayload struct {
+	UserID   uint   `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Token    string `json:"token"`
 }

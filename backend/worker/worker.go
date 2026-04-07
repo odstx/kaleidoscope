@@ -51,6 +51,7 @@ func NewWorker(redisAddr, redisPassword string, redisDB int, emailConfig *config
 func (w *Worker) Start() error {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(string(TaskSendWelcomeEmail), w.handleSendWelcomeEmail)
+	mux.HandleFunc(string(TaskSendPasswordResetEmail), w.handleSendPasswordResetEmail)
 
 	w.logger.Info("Starting Asynq worker...")
 	if err := w.server.Run(mux); err != nil {
@@ -101,6 +102,48 @@ func (w *Worker) handleSendWelcomeEmail(ctx context.Context, task *asynq.Task) e
 	}
 
 	w.logger.Info("Welcome email sent successfully",
+		zap.Uint("user_id", payload.UserID),
+		zap.String("email", payload.Email))
+
+	return nil
+}
+
+func (w *Worker) handleSendPasswordResetEmail(ctx context.Context, task *asynq.Task) error {
+	var payload SendPasswordResetEmailPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal payload: %w", err)
+	}
+
+	w.logger.Info("Sending password reset email",
+		zap.Uint("user_id", payload.UserID),
+		zap.String("username", payload.Username),
+		zap.String("email", payload.Email))
+
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", w.emailService.GetFrontendURL(), payload.Token)
+	subject := "Reset Your Password - Kaleidoscope"
+	body := fmt.Sprintf(`
+		<html>
+		<body>
+			<h2>Hello, %s!</h2>
+			<p>We received a request to reset your password.</p>
+			<p>Click the link below to reset your password:</p>
+			<p><a href="%s">Reset Password</a></p>
+			<p>This link will expire in 1 hour.</p>
+			<p>If you did not request a password reset, please ignore this email.</p>
+			<p>Best regards,<br>The Kaleidoscope Team</p>
+		</body>
+		</html>
+	`, payload.Username, resetLink)
+
+	if err := w.emailService.SendEmail(payload.Email, subject, body); err != nil {
+		w.logger.Error("Failed to send password reset email",
+			zap.Uint("user_id", payload.UserID),
+			zap.String("email", payload.Email),
+			zap.Error(err))
+		return fmt.Errorf("failed to send password reset email: %w", err)
+	}
+
+	w.logger.Info("Password reset email sent successfully",
 		zap.Uint("user_id", payload.UserID),
 		zap.String("email", payload.Email))
 

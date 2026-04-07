@@ -3,6 +3,8 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UserProfilePage from './pages/UserProfilePage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { Footer } from './components/Footer';
 import { Navbar } from './components/Navbar';
 import { AuthProvider } from './contexts/AuthContext';
@@ -18,6 +20,8 @@ function App() {
           <Routes>
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<UserProfilePage />} />
             <Route path="/" element={<LoginPage />} />

@@ -34,6 +34,17 @@ type TOTPVerifyRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
+// ForgotPasswordRequest represents the request body for forgot password
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ResetPasswordRequest represents the request body for reset password
+type ResetPasswordRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
 // UserController handles user-related operations
 type UserController struct {
 	logger      *zap.Logger
@@ -126,6 +137,17 @@ func (uc *UserController) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful", "user": user, "token": token})
 }
 
+// GetUserInfo godoc
+// @Summary      Get user information
+// @Description  Get current user's information including ID, UID, email, and security settings
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "User information retrieved successfully"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Failed to get user info"
+// @Router       /users/info [get]
 func (uc *UserController) GetUserInfo(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -146,6 +168,17 @@ func (uc *UserController) GetUserInfo(c *gin.Context) {
 	})
 }
 
+// SetupTOTP godoc
+// @Summary      Setup TOTP
+// @Description  Generate TOTP secret and URL for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  TOTPSetupResponse  "TOTP setup successful"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Failed to setup TOTP"
+// @Router       /users/totp/setup [post]
 func (uc *UserController) SetupTOTP(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -164,6 +197,20 @@ func (uc *UserController) SetupTOTP(c *gin.Context) {
 	})
 }
 
+// VerifyTOTP godoc
+// @Summary      Verify TOTP
+// @Description  Verify TOTP code for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      TOTPVerifyRequest  true  "TOTP verification request"
+// @Success      200  {object}  map[string]interface{}  "TOTP verified successfully"
+// @Failure      400  {object}  map[string]interface{}  "Invalid request or TOTP code"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Failed to verify TOTP"
+// @Router       /users/totp/verify [post]
 func (uc *UserController) VerifyTOTP(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -189,6 +236,17 @@ func (uc *UserController) VerifyTOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "TOTP verified successfully"})
 }
 
+// EnableTOTP godoc
+// @Summary      Enable TOTP
+// @Description  Enable TOTP for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "TOTP enabled successfully"
+// @Failure      400  {object}  map[string]interface{}  "Failed to enable TOTP"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Router       /users/totp/enable [post]
 func (uc *UserController) EnableTOTP(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -203,6 +261,17 @@ func (uc *UserController) EnableTOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "TOTP enabled successfully"})
 }
 
+// DisableTOTP godoc
+// @Summary      Disable TOTP
+// @Description  Disable TOTP for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "TOTP disabled successfully"
+// @Failure      400  {object}  map[string]interface{}  "Failed to disable TOTP"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Router       /users/totp/disable [post]
 func (uc *UserController) DisableTOTP(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -221,6 +290,17 @@ type HawkSetupResponse struct {
 	Key string `json:"key"`
 }
 
+// SetupHawk godoc
+// @Summary      Setup Hawk
+// @Description  Generate Hawk key for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  HawkSetupResponse  "Hawk setup successful"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Failure      500  {object}  map[string]interface{}  "Failed to setup Hawk"
+// @Router       /users/hawk/setup [post]
 func (uc *UserController) SetupHawk(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -236,6 +316,17 @@ func (uc *UserController) SetupHawk(c *gin.Context) {
 	c.JSON(http.StatusOK, HawkSetupResponse{Key: key})
 }
 
+// EnableHawk godoc
+// @Summary      Enable Hawk
+// @Description  Enable Hawk authentication for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Hawk enabled successfully"
+// @Failure      400  {object}  map[string]interface{}  "Failed to enable Hawk"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Router       /users/hawk/enable [post]
 func (uc *UserController) EnableHawk(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -250,6 +341,17 @@ func (uc *UserController) EnableHawk(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Hawk enabled successfully"})
 }
 
+// DisableHawk godoc
+// @Summary      Disable Hawk
+// @Description  Disable Hawk authentication for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}  "Hawk disabled successfully"
+// @Failure      400  {object}  map[string]interface{}  "Failed to disable Hawk"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Router       /users/hawk/disable [post]
 func (uc *UserController) DisableHawk(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -262,4 +364,62 @@ func (uc *UserController) DisableHawk(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hawk disabled successfully"})
+}
+
+// ForgotPassword godoc
+// @Summary      Forgot password
+// @Description  Send password reset email to user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      ForgotPasswordRequest  true  "Forgot password request"
+// @Success      200  {object}  map[string]interface{}  "Password reset email sent"
+// @Failure      400  {object}  map[string]interface{}  "Invalid request"
+// @Router       /users/forgot-password [post]
+func (uc *UserController) ForgotPassword(c *gin.Context) {
+	uc.logger.Info("Received forgot password request")
+
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		uc.logger.Error("Invalid forgot password request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if err := uc.userService.ForgotPassword(req.Email); err != nil {
+		uc.logger.Error("Forgot password failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "If the email exists, a password reset link has been sent"})
+}
+
+// ResetPassword godoc
+// @Summary      Reset password
+// @Description  Reset user password using token from email
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      ResetPasswordRequest  true  "Reset password request"
+// @Success      200  {object}  map[string]interface{}  "Password reset successfully"
+// @Failure      400  {object}  map[string]interface{}  "Invalid request or token"
+// @Router       /users/reset-password [post]
+func (uc *UserController) ResetPassword(c *gin.Context) {
+	uc.logger.Info("Received reset password request")
+
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		uc.logger.Error("Invalid reset password request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if err := uc.userService.ResetPassword(req.Token, req.Password); err != nil {
+		uc.logger.Error("Reset password failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
 }

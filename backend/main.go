@@ -21,6 +21,12 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
+
+// @securityDefinitions.apikey HawkAuth
+// @in header
+// @name Authorization
+// @description Type "Hawk" followed by a space and Hawk authentication parameters (id, ts, nonce, mac).
 
 func main() {
 	cmd.Execute()

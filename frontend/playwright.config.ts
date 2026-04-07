@@ -20,9 +20,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'bun run dev',
+    command: 'bun run dev --port 9001',
     url: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:9001',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
 });

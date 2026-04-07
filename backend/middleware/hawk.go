@@ -12,6 +12,36 @@ import (
 	"kaleidoscope/utils"
 )
 
+func CombinedAuth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			c.Abort()
+			return
+		}
+
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			jwtAuth := JWTAuth()
+			jwtAuth(c)
+			if !c.IsAborted() {
+				return
+			}
+			c.Next()
+			return
+		}
+
+		if strings.HasPrefix(authHeader, "Hawk ") {
+			hawkAuth := HawkAuth(cfg, db)
+			hawkAuth(c)
+			return
+		}
+
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization scheme"})
+		c.Abort()
+	}
+}
+
 func HawkAuth(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !cfg.Hawk.Enabled {

@@ -96,12 +96,13 @@ type HawkConfig struct {
 }
 
 type EmailConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	From     string `mapstructure:"from"`
-	UseTLS   bool   `mapstructure:"use_tls"`
+	Host        string `mapstructure:"host"`
+	Port        int    `mapstructure:"port"`
+	Username    string `mapstructure:"username"`
+	Password    string `mapstructure:"password"`
+	From        string `mapstructure:"from"`
+	UseTLS      bool   `mapstructure:"use_tls"`
+	FrontendURL string `mapstructure:"frontend_url"`
 }
 
 func generateDefaultConfig(path string) error {
@@ -171,6 +172,7 @@ email:
   password: ""
   from: ""
   use_tls: true
+  frontend_url: "http://localhost:5173"
 `
 	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
 		return fmt.Errorf("failed to write default config: %w", err)
@@ -180,11 +182,15 @@ email:
 }
 
 // LoadConfig reads configuration from file or environment variables
-func LoadConfig() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
+func LoadConfig(configPath string) (*Config, error) {
+	if configPath != "" {
+		viper.SetConfigFile(configPath)
+	} else {
+		viper.SetConfigName("config")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("./config")
+	}
 
 	// Set defaults
 	viper.SetDefault("server.host", "")
@@ -235,15 +241,19 @@ func LoadConfig() (*Config, error) {
 	viper.SetDefault("email.password", "")
 	viper.SetDefault("email.from", "")
 	viper.SetDefault("email.use_tls", true)
+	viper.SetDefault("email.frontend_url", "http://localhost:5173")
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			configPath := "config.yaml"
-			if err := generateDefaultConfig(configPath); err != nil {
+			generatePath := configPath
+			if generatePath == "" {
+				generatePath = "config.yaml"
+			}
+			if err := generateDefaultConfig(generatePath); err != nil {
 				return nil, err
 			}
-			viper.SetConfigFile(configPath)
+			viper.SetConfigFile(generatePath)
 			if err := viper.ReadInConfig(); err != nil {
 				return nil, fmt.Errorf("failed to read generated config: %w", err)
 			}

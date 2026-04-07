@@ -20,6 +20,11 @@ func NewEmailService(cfg *config.EmailConfig) *EmailService {
 	}
 }
 
+// GetFrontendURL returns the frontend URL from the email config
+func (e *EmailService) GetFrontendURL() string {
+	return e.config.FrontendURL
+}
+
 // SendEmail sends an email using the configured SMTP settings
 func (e *EmailService) SendEmail(to, subject, body string) error {
 	if e.config.Username == "" || e.config.Password == "" || e.config.From == "" {

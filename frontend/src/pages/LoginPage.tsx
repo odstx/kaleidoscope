@@ -161,6 +161,11 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <div className="text-center w-full">
+            <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+              {t('login.forgotPassword')}
+            </Link>
+          </div>
+          <div className="text-center w-full">
             <Link to="/register" className="text-sm text-primary hover:underline">
               {t('login.goToRegister')}
             </Link>
