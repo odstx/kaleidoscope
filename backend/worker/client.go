@@ -40,7 +40,7 @@ func (c *Client) EnqueueSendWelcomeEmail(ctx context.Context, userID uint, usern
 		return err
 	}
 
-	task := asynq.NewTask(string(TaskSendWelcomeEmail), payloadBytes, asynq.Queue("default"))
+	task := asynq.NewTask(string(TaskSendWelcomeEmail), payloadBytes, asynq.Queue("default"), asynq.MaxRetry(0))
 
 	_, err = c.client.EnqueueContext(ctx, task)
 	return err
@@ -60,7 +60,7 @@ func (c *Client) EnqueueSendPasswordResetEmail(ctx context.Context, userID uint,
 		return err
 	}
 
-	task := asynq.NewTask(string(TaskSendPasswordResetEmail), payloadBytes, asynq.Queue("default"))
+	task := asynq.NewTask(string(TaskSendPasswordResetEmail), payloadBytes, asynq.Queue("default"), asynq.MaxRetry(0))
 
 	_, err = c.client.EnqueueContext(ctx, task)
 	return err

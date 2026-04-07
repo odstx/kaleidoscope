@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend build run macos deploy
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend build run macos deploy check check-frontend check-backend
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -47,17 +47,19 @@ test-e2e:
 
 run:
 	@echo "Starting $(ENV) environment..."
-	@echo "Backend will run on port $(API_PORT)"
+	@echo "Backend server will run on port $(API_PORT)"
+	@echo "Backend worker will run for background tasks"
 	@echo "Frontend will run on port $(FRONTEND_PORT)"
 	@echo ""
-	bash -c 'cd backend && go run . server --port $(API_PORT) & BACKEND_PID=$$!; cd $(PWD)/frontend && $(if $(filter test,$(ENV)),cp .env.test .env.local && bun run dev --port $(FRONTEND_PORT),bun run dev --port $(FRONTEND_PORT)) & FRONTEND_PID=$$!; echo "Backend PID: $$BACKEND_PID"; echo "Frontend PID: $$FRONTEND_PID"; trap "kill $$BACKEND_PID $$FRONTEND_PID 2>/dev/null; rm -f $(PWD)/frontend/.env.local" EXIT; wait $$BACKEND_PID $$FRONTEND_PID'
+	bash -c 'cd backend && go run . server --port $(API_PORT) & BACKEND_SERVER_PID=$$!; cd backend && go run . worker & BACKEND_WORKER_PID=$$!; cd $(PWD)/frontend && $(if $(filter test,$(ENV)),cp .env.test .env.local && bun run dev --port $(FRONTEND_PORT),bun run dev --port $(FRONTEND_PORT)) & FRONTEND_PID=$$!; echo "Backend Server PID: $$BACKEND_SERVER_PID"; echo "Backend Worker PID: $$BACKEND_WORKER_PID"; echo "Frontend PID: $$FRONTEND_PID"; trap "kill $$BACKEND_SERVER_PID $$BACKEND_WORKER_PID $$FRONTEND_PID 2>/dev/null; rm -f $(PWD)/frontend/.env.local" EXIT; wait $$BACKEND_SERVER_PID $$BACKEND_WORKER_PID $$FRONTEND_PID'
 
 dev:
 	@echo "Starting development environment..."
-	@echo "Backend will run on port 8000"
+	@echo "Backend server will run on port 8000"
+	@echo "Backend worker will run for background tasks"
 	@echo "Frontend will run on port 8001"
 	@echo ""
-	bash -c 'cd backend && go run . server --port 8000 & BACKEND_PID=$$!; cd $(PWD)/frontend && bun run dev --port 8001 & FRONTEND_PID=$$!; echo "Backend PID: $$BACKEND_PID"; echo "Frontend PID: $$FRONTEND_PID"; trap "kill $$BACKEND_PID $$FRONTEND_PID 2>/dev/null" EXIT; wait $$BACKEND_PID $$FRONTEND_PID'
+	bash -c 'cd backend && go run . server --port 8000 & BACKEND_SERVER_PID=$$!; cd backend && go run . worker & BACKEND_WORKER_PID=$$!; cd $(PWD)/frontend && bun run dev --port 8001 & FRONTEND_PID=$$!; echo "Backend Server PID: $$BACKEND_SERVER_PID"; echo "Backend Worker PID: $$BACKEND_WORKER_PID"; echo "Frontend PID: $$FRONTEND_PID"; trap "kill $$BACKEND_SERVER_PID $$BACKEND_WORKER_PID $$FRONTEND_PID 2>/dev/null" EXIT; wait $$BACKEND_SERVER_PID $$BACKEND_WORKER_PID $$FRONTEND_PID'
 
 backend:
 	cd backend && go run . server
@@ -116,6 +118,10 @@ macos:
 	@sleep 1
 	@echo "Launching FrontendApp..."
 	@open swift/FrontendApp.app
+
+check:
+	@echo "Running backend configuration check command..."
+	cd backend && go run . check
 
 deploy:
 	@echo "Deploying to remote server..."
