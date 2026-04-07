@@ -1,15 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-
-
-test.beforeEach(async ({ page }) => {
-
-});
-
-test.afterEach(async ({ page }) => {
-
-});
-
 test('should register a new user successfully', async ({ page }) => {
   // Navigate to registration page
   await page.goto('/register');

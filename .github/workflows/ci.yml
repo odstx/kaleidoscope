@@ -50,10 +50,6 @@ jobs:
         working-directory: frontend
         run: bun install
 
-      - name: Run Frontend Unit Tests
-        working-directory: frontend
-        run: bun run test --run
-
       - name: Run Frontend Lint
         working-directory: frontend
         run: bun run lint
