@@ -19,6 +19,12 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
+      - name: Install Swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Generate Swagger Docs
+        run: make swagger
+
       - name: Run Backend Tests
         working-directory: backend
         run: go test ./... -v -race -coverprofile=coverage.out
@@ -74,6 +80,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install Swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Generate Swagger Docs
+        run: make swagger
+
       - name: Setup Playwright
         working-directory: frontend
         run: bun install && bunx playwright install --with-deps
@@ -119,6 +131,12 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+
+      - name: Install Swag
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      - name: Generate Swagger Docs
+        run: make swagger
 
       - name: Build
         working-directory: backend

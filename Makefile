@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger build-backend build run macos deploy check check-frontend check-backend
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build run macos deploy check check-frontend check-backend
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -21,6 +21,8 @@ swagger:
 	@echo "Generating Swagger documentation..."
 	cd backend && swag init
 	@echo "Swagger docs generated at backend/docs/"
+
+swag: swagger
 
 test:
 	@echo "Running all tests..."

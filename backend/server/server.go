@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 
@@ -75,6 +76,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	router.Use(middleware.Logger(logger))
 	router.Use(gin.Recovery())
+	router.Use(middleware.PrometheusMetrics())
 
 	if config.OTEL.Enabled {
 		router.Use(otelgin.Middleware(config.OTEL.ServiceName))
@@ -87,6 +89,8 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		AllowHeaders:     config.CORS.AllowHeaders,
 		AllowCredentials: config.CORS.AllowCredentials,
 	}))
+
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	controllers.RegisterRoutes(router, logger, userService, rateLimiter, config, db.DB)
 
