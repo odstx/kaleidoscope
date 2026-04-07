@@ -1,26 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-// Helper function to cleanup test data
-async function cleanupTestData(page) {
-  try {
-    // Try to call a test cleanup endpoint if it exists
-    await page.request.post('/api/v1/test/cleanup', {
-      data: { test: true }
-    });
-  } catch {
-    // Ignore cleanup errors - endpoint might not exist in production
-    console.log('Cleanup endpoint not available, continuing...');
-  }
-}
+
 
 test.beforeEach(async ({ page }) => {
-  // Cleanup before each test
-  await cleanupTestData(page);
+
 });
 
 test.afterEach(async ({ page }) => {
-  // Cleanup after each test
-  await cleanupTestData(page);
+
 });
 
 test('should register a new user successfully', async ({ page }) => {
@@ -156,6 +143,122 @@ test('should navigate between login and register pages', async ({ page }) => {
   
   // Navigate back to login page
   await page.click('text=Go to login');
+  await page.waitForURL('/login');
+  await expect(page).toHaveURL('/login');
+});
+
+test('should send forgot password email successfully', async ({ page }) => {
+  await page.goto('/forgot-password');
+  
+  await page.fill('input[name="email"]', 'test@example.com');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.getByText('If an account exists with this email, you will receive a password reset link shortly.')).toBeVisible();
+  
+  await expect(page.getByRole('link', { name: 'Back to Login' })).toBeVisible();
+});
+
+test('should show validation error for invalid email in forgot password', async ({ page }) => {
+  await page.goto('/forgot-password');
+  
+  await page.fill('input[name="email"]', 'invalid-email');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.getByText('Please enter a valid email address')).toBeVisible();
+});
+
+test('should show error when accessing reset password without token', async ({ page }) => {
+  await page.goto('/reset-password');
+  
+  await expect(page.getByText('Invalid or expired reset token')).toBeVisible();
+  
+  await expect(page.getByRole('button', { name: 'Request New Link' })).toBeVisible();
+});
+
+test('should navigate to forgot password from reset password without token', async ({ page }) => {
+  await page.goto('/reset-password');
+  
+  await page.click('button:has-text("Request New Link")');
+  await page.waitForURL('/forgot-password');
+  await expect(page).toHaveURL('/forgot-password');
+});
+
+test('should show validation error for password mismatch in reset password', async ({ page }) => {
+  await page.goto('/reset-password?token=valid-test-token');
+  
+  await page.fill('input[name="password"]', 'password123');
+  await page.fill('input[name="confirmPassword"]', 'password456');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.getByText('Passwords do not match')).toBeVisible();
+});
+
+test('should show validation error for short password in reset password', async ({ page }) => {
+  await page.goto('/reset-password?token=valid-test-token');
+  
+  await page.fill('input[name="password"]', '123');
+  await page.fill('input[name="confirmPassword"]', '123');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.getByText('Password must be at least 6 characters')).toBeVisible();
+});
+
+test('should show error for wrong password on login', async ({ page }) => {
+  const uniqueId = Date.now().toString().slice(-6);
+  const email = `wrongpass${uniqueId}@example.com`;
+  
+  await page.goto('/register');
+  await page.fill('input[name="username"]', `wrongpass${uniqueId}`);
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  await page.waitForURL('/login');
+  
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', 'wrongpassword');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.locator('.bg-destructive\\/10')).toBeVisible();
+});
+
+test('should show error for non-existent user on login', async ({ page }) => {
+  await page.goto('/login');
+  
+  await page.fill('input[name="email"]', 'nonexistent@example.com');
+  await page.fill('input[name="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  
+  await expect(page.locator('.bg-destructive\\/10')).toBeVisible();
+});
+
+test('should navigate from login to forgot password', async ({ page }) => {
+  await page.goto('/login');
+  
+  await page.click('text=Forgot Password?');
+  await page.waitForURL('/forgot-password');
+  await expect(page).toHaveURL('/forgot-password');
+});
+
+test('should logout successfully', async ({ page }) => {
+  const uniqueId = Date.now().toString().slice(-6);
+  const username = `logout${uniqueId}`;
+  const email = `logout${uniqueId}@example.com`;
+  
+  await page.goto('/register');
+  await page.fill('input[name="username"]', username);
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  await page.waitForURL('/login');
+  
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', 'password123');
+  await page.click('button[type="submit"]');
+  await page.waitForURL('/dashboard');
+  
+  await page.click('button:has-text("Menu")');
+  await page.click('text=Logout');
+  
   await page.waitForURL('/login');
   await expect(page).toHaveURL('/login');
 });
