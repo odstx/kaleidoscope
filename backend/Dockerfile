@@ -6,6 +6,9 @@ WORKDIR /app
 # Set GOPROXY for faster and more reliable module downloads
 ENV GOPROXY=https://goproxy.cn,direct
 
+# Use Aliyun mirror for Alpine packages
+RUN sed -i 's#http://dl-cdn.alpinelinux.org/#https://mirrors.aliyun.com/#g' /etc/apk/repositories
+
 # Install git (required for swag)
 RUN apk add --no-cache git
 
@@ -27,6 +30,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o kaleidoscope .
 
 # Final stage
 FROM alpine:latest
+
+# Use Aliyun mirror for Alpine packages
+RUN sed -i 's#http://dl-cdn.alpinelinux.org/#https://mirrors.aliyun.com/#g' /etc/apk/repositories
 
 RUN apk --no-cache add ca-certificates tzdata
 
