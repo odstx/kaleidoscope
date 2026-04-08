@@ -15,6 +15,10 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 
+	"path"
+	"path/filepath"
+	"strings"
+
 	"kaleidoscope/config"
 	"kaleidoscope/controllers"
 	"kaleidoscope/database"
@@ -97,16 +101,47 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	if config.Server.Environment == "production" {
 		staticPath := config.Server.StaticFilesPath
 		if _, err := os.Stat(staticPath); err == nil {
-			router.NoRoute(func(c *gin.Context) {
-				path := c.Request.URL.Path
-				filePath := staticPath + path
-				if _, err := os.Stat(filePath); os.IsNotExist(err) || path == "/" {
-					c.File(staticPath + "/index.html")
-				} else {
-					c.File(filePath)
+			// Resolve the static directory to an absolute, cleaned path for containment checks.
+			absStaticPath, err := filepath.Abs(staticPath)
+			if err != nil {
+				logger.Warn("Failed to resolve static files path, skipping static file serving", zap.String("path", staticPath), zap.Error(err))
+			} else {
+				// Ensure the base path has a trailing separator so prefix checks are unambiguous.
+				basePathWithSep := absStaticPath
+				if !strings.HasSuffix(basePathWithSep, string(os.PathSeparator)) {
+					basePathWithSep += string(os.PathSeparator)
 				}
-			})
-			logger.Info("Static files serving enabled", zap.String("path", staticPath))
+
+				router.NoRoute(func(c *gin.Context) {
+					requestPath := c.Request.URL.Path
+
+					// Normalize the URL path and ensure it is rooted for joining.
+					cleanURLPath := path.Clean("/" + requestPath)
+
+					// Join the static directory and the cleaned URL path, then resolve to an absolute path.
+					joinedPath := filepath.Join(absStaticPath, cleanURLPath)
+					absFilePath, err := filepath.Abs(joinedPath)
+					if err != nil || !strings.HasPrefix(absFilePath, basePathWithSep) {
+						// On error or attempted directory traversal, fall back to index.html.
+						c.File(filepath.Join(absStaticPath, "index.html"))
+						return
+					}
+
+					// If the path is root or the specific file does not exist, serve index.html.
+					if requestPath == "/" {
+						c.File(filepath.Join(absStaticPath, "index.html"))
+						return
+					}
+
+					if _, err := os.Stat(absFilePath); os.IsNotExist(err) {
+						c.File(filepath.Join(absStaticPath, "index.html"))
+						return
+					}
+
+					c.File(absFilePath)
+				})
+				logger.Info("Static files serving enabled", zap.String("path", absStaticPath))
+			}
 		} else {
 			logger.Warn("Static files path not found, skipping static file serving", zap.String("path", staticPath))
 		}
