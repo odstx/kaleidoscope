@@ -20,6 +20,7 @@ type Config struct {
 	OTEL      OTELConfig      `mapstructure:"otel"`
 	Hawk      HawkConfig      `mapstructure:"hawk"`
 	Email     EmailConfig     `mapstructure:"email"`
+	OIDC      OIDCConfig      `mapstructure:"oidc"`
 }
 
 type ServerConfig struct {
@@ -103,6 +104,15 @@ type EmailConfig struct {
 	From        string `mapstructure:"from"`
 	UseTLS      bool   `mapstructure:"use_tls"`
 	FrontendURL string `mapstructure:"frontend_url"`
+}
+
+type OIDCConfig struct {
+	Enabled      bool     `mapstructure:"enabled"`
+	IssuerURL    string   `mapstructure:"issuer_url"`
+	ClientID     string   `mapstructure:"client_id"`
+	ClientSecret string   `mapstructure:"client_secret"`
+	RedirectURI  string   `mapstructure:"redirect_uri"`
+	Scopes       []string `mapstructure:"scopes"`
 }
 
 func generateDefaultConfig(path string) error {
@@ -242,6 +252,12 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("email.from", "")
 	viper.SetDefault("email.use_tls", true)
 	viper.SetDefault("email.frontend_url", "http://localhost:5173")
+	viper.SetDefault("oidc.enabled", false)
+	viper.SetDefault("oidc.issuer_url", "")
+	viper.SetDefault("oidc.client_id", "")
+	viper.SetDefault("oidc.client_secret", "")
+	viper.SetDefault("oidc.redirect_uri", "http://localhost:9000/api/v1/users/oidc/callback")
+	viper.SetDefault("oidc.scopes", []string{"openid", "profile", "email"})
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

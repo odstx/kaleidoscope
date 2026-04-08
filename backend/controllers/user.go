@@ -1,10 +1,13 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"kaleidoscope/models"
 	"kaleidoscope/services"
 	"kaleidoscope/utils"
 )
@@ -49,13 +52,15 @@ type ResetPasswordRequest struct {
 type UserController struct {
 	logger      *zap.Logger
 	userService *services.UserService
+	oidcService *services.OIDCService
 }
 
 // NewUserController creates a new UserController instance
-func NewUserController(logger *zap.Logger, userService *services.UserService) *UserController {
+func NewUserController(logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService) *UserController {
 	return &UserController{
 		logger:      logger,
 		userService: userService,
+		oidcService: oidcService,
 	}
 }
 
@@ -422,4 +427,106 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password reset successfully"})
+}
+
+type OIDCAuthURLResponse struct {
+	URL string `json:"url"`
+}
+
+type OIDCCallbackRequest struct {
+	Code  string `json:"code"`
+	State string `json:"state"`
+}
+
+type OIDCCallbackResponse struct {
+	Token string       `json:"token"`
+	User  *models.User `json:"user"`
+}
+
+// OIDCLogin godoc
+// @Summary      OIDC Login
+// @Description  Redirect to OIDC provider for authentication
+// @Tags         users
+// @Produce      json
+// @Success      200  {object}  OIDCAuthURLResponse  "OIDC authorization URL"
+// @Router       /users/oidc/login [get]
+func (uc *UserController) OIDCLogin(c *gin.Context) {
+	if !uc.oidcService.Enabled() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OIDC is not enabled"})
+		return
+	}
+
+	state := generateState()
+	c.Set("oidc_state", state)
+
+	authURL, err := uc.oidcService.GetAuthorizationURL(state)
+	if err != nil {
+		uc.logger.Error("Failed to get OIDC auth URL", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get authorization URL"})
+		return
+	}
+
+	c.JSON(http.StatusOK, OIDCAuthURLResponse{URL: authURL})
+}
+
+// OIDCCallback godoc
+// @Summary      OIDC Callback
+// @Description  Handle OIDC provider callback and authenticate user
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Param        request  body      OIDCCallbackRequest  true  "OIDC callback request"
+// @Success      200  {object}  OIDCCallbackResponse  "Login successful"
+// @Failure      400  {object}  map[string]interface{}  "Invalid request"
+// @Failure      401  {object}  map[string]interface{}  "Authentication failed"
+// @Router       /users/oidc/callback [post]
+func (uc *UserController) OIDCCallback(c *gin.Context) {
+	if !uc.oidcService.Enabled() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "OIDC is not enabled"})
+		return
+	}
+
+	var req OIDCCallbackRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		uc.logger.Error("Invalid OIDC callback request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	tokenResp, err := uc.oidcService.ExchangeCode(req.Code)
+	if err != nil {
+		uc.logger.Error("Failed to exchange OIDC code", zap.Error(err))
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to exchange code"})
+		return
+	}
+
+	userInfo, err := uc.oidcService.GetUserInfo(tokenResp.AccessToken)
+	if err != nil {
+		uc.logger.Error("Failed to get OIDC user info", zap.Error(err))
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to get user info"})
+		return
+	}
+
+	user, err := uc.oidcService.FindOrCreateUser(uc.userService.GetDB(), userInfo)
+	if err != nil {
+		uc.logger.Error("Failed to find or create user", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to authenticate user"})
+		return
+	}
+
+	token, err := utils.GenerateToken(user.ID, user.Email)
+	if err != nil {
+		uc.logger.Error("Failed to generate token", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	uc.logger.Info("OIDC login successful", zap.String("email", user.Email))
+	c.JSON(http.StatusOK, OIDCCallbackResponse{Token: token, User: user})
+}
+
+func generateState() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return hex.EncodeToString(b)
 }

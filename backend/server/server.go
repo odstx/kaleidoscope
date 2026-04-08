@@ -69,6 +69,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	)
 
 	userService := services.NewUserService(db.DB, asynqClient)
+	oidcService := services.NewOIDCService(&config.OIDC)
 
 	var rateLimiter *middleware.RateLimiter
 	if config.RateLimit.Enabled {
@@ -96,7 +97,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	controllers.RegisterRoutes(router, logger, userService, rateLimiter, config, db.DB)
+	controllers.RegisterRoutes(router, logger, userService, oidcService, rateLimiter, config, db.DB)
 
 	if config.Server.Environment == "production" {
 		staticPath := config.Server.StaticFilesPath

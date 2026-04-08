@@ -27,7 +27,16 @@
     "loginFailed": "登录失败",
     "loginError": "登录过程中发生错误",
     "totpCode": "TOTP 验证码",
-    "totpPlaceholder": "请输入6位验证码"
+    "totpPlaceholder": "请输入6位验证码",
+    "continueWithOidc": "使用 OIDC 继续"
+  },
+  "oidc": {
+    "callback": {
+      "title": "正在认证...",
+      "description": "请稍候，正在完成您的身份验证。",
+      "errorTitle": "认证失败",
+      "returnToLogin": "返回登录页面"
+    }
   },
   "forgotPassword": {
     "title": "忘记密码",

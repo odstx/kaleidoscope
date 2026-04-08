@@ -10,7 +10,7 @@ type User struct {
 	UID                 string `gorm:"uniqueIndex;not null" json:"uid"`
 	Username            string `gorm:"uniqueIndex;not null" json:"username"`
 	Email               string `gorm:"uniqueIndex;not null" json:"email"`
-	Password            string `gorm:"not null" json:"password"`
+	Password            string `gorm:"default:''" json:"password"`
 	TOTPSecret          string `gorm:"default:''" json:"-"`
 	TOTPEnabled         bool   `gorm:"default:false" json:"totp_enabled"`
 	TOTPVerified        bool   `gorm:"default:false" json:"-"`
@@ -18,6 +18,8 @@ type User struct {
 	HawkEnabled         bool   `gorm:"default:false" json:"hawk_enabled"`
 	ResetToken          string `gorm:"default:''" json:"-"`
 	ResetTokenExpiresAt int64  `gorm:"default:0" json:"-"`
+	OIDCProvider        string `gorm:"default:''" json:"oidc_provider"`
+	OIDCSubject         string `gorm:"default:''" json:"oidc_subject"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

@@ -27,7 +27,16 @@
     "loginFailed": "Login failed",
     "loginError": "An error occurred during login",
     "totpCode": "TOTP Code",
-    "totpPlaceholder": "Enter 6-digit code"
+    "totpPlaceholder": "Enter 6-digit code",
+    "continueWithOidc": "Continue with OIDC"
+  },
+  "oidc": {
+    "callback": {
+      "title": "Authenticating...",
+      "description": "Please wait while we complete your authentication.",
+      "errorTitle": "Authentication Failed",
+      "returnToLogin": "Return to login page"
+    }
   },
   "forgotPassword": {
     "title": "Forgot Password",

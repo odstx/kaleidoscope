@@ -23,6 +23,10 @@ func NewUserService(db *gorm.DB, client *worker.Client) *UserService {
 	return &UserService{db: db, client: client}
 }
 
+func (s *UserService) GetDB() *gorm.DB {
+	return s.db
+}
+
 // Register creates a new user with the provided username, email and password
 // It validates the input, hashes the password, and persists to database
 func (s *UserService) Register(username, email, password string) (*models.User, error) {

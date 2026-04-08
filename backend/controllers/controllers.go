@@ -1,20 +1,21 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/swaggo/files"
-	"github.com/swaggo/gin-swagger"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 	"kaleidoscope/config"
 	_ "kaleidoscope/docs"
 	"kaleidoscope/middleware"
 	"kaleidoscope/services"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
-	userController := NewUserController(logger, userService)
-	systemController := NewSystemController(logger)
+func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
+	userController := NewUserController(logger, userService, oidcService)
+	systemController := NewSystemController(logger, cfg)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -35,6 +36,9 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/hawk/setup", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.SetupHawk)
 				userGroup.POST("/hawk/enable", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.EnableHawk)
 				userGroup.POST("/hawk/disable", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.DisableHawk)
+
+				userGroup.GET("/oidc/login", rateLimiter.RateLimit(), userController.OIDCLogin)
+				userGroup.POST("/oidc/callback", rateLimiter.RateLimit(), userController.OIDCCallback)
 			} else {
 				userGroup.POST("/register", userController.Register)
 				userGroup.POST("/login", userController.Login)
@@ -48,6 +52,9 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/hawk/setup", middleware.CombinedAuth(cfg, db), userController.SetupHawk)
 				userGroup.POST("/hawk/enable", middleware.CombinedAuth(cfg, db), userController.EnableHawk)
 				userGroup.POST("/hawk/disable", middleware.CombinedAuth(cfg, db), userController.DisableHawk)
+
+				userGroup.GET("/oidc/login", userController.OIDCLogin)
+				userGroup.POST("/oidc/callback", userController.OIDCCallback)
 			}
 		}
 
@@ -55,8 +62,10 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 		{
 			if rateLimiter != nil {
 				systemGroup.GET("/info", rateLimiter.RateLimit(), systemController.GetSystemInfo)
+				systemGroup.GET("/config", rateLimiter.RateLimit(), systemController.GetConfig)
 			} else {
 				systemGroup.GET("/info", systemController.GetSystemInfo)
+				systemGroup.GET("/config", systemController.GetConfig)
 			}
 		}
 	}
