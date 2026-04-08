@@ -35,7 +35,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend application
+  # Backend API server
   backend:
     build:
       context: .
@@ -64,7 +64,34 @@ services:
       - REDIS_DB=0
     volumes:
       - ./logs:/root/logs
-    command: ["./kaleidoscope", "server", "--port", "8000"]
+    command: ["./kaleidoscope", "server"]
+
+  # Asynq worker for background jobs
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kaleidoscope-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=kaleidoscope
+      - DATABASE_SSLMODE=disable
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+    volumes:
+      - ./logs:/root/logs
+    command: ["./kaleidoscope", "worker"]
 
 volumes:
   postgres_data:
