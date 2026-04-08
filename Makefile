@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build run macos deploy check check-frontend check-backend
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -78,6 +78,13 @@ build-backend:
 		-X 'kaleidoscope/version.BuildTime=$(BUILD_TIME)' \
 		-X 'kaleidoscope/version.GitCommit=$(GIT_COMMIT)'" \
 		-o kaleidoscope .
+
+image:
+	@echo "Building Docker image for backend..."
+	@echo "Version: $(VERSION)"
+	@echo "Build ID: $(BUILD_ID)"
+	docker build -t kaleidoscope-backend:$(VERSION)-$(BUILD_ID) -f backend/Dockerfile .
+	@echo "Docker image built: kaleidoscope-backend:$(VERSION)-$(BUILD_ID)"
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
