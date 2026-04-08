@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.app"
+    namespace = "com.siciv.kaleidoscope"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.app"
+        applicationId = "com.siciv.kaleidoscope"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

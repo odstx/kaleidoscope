@@ -155,12 +155,18 @@ struct RegisterView: View {
     
     private func startCountdown() {
         countdown = 5
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            countdown -= 1
-            if countdown <= 0 {
-                timer.invalidate()
-                showSuccessDialog = false
-                router.replace(with: .login)
+        Task {
+            for _ in 1...5 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                await MainActor.run {
+                    if countdown > 0 {
+                        countdown -= 1
+                        if countdown <= 0 {
+                            showSuccessDialog = false
+                            router.replace(with: .login)
+                        }
+                    }
+                }
             }
         }
     }

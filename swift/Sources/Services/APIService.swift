@@ -26,7 +26,8 @@ enum APIError: Error, LocalizedError {
     }
 }
 
-class APIService {
+@MainActor
+final class APIService: @unchecked Sendable {
     static let shared = APIService()
     
     private let baseURL: String
