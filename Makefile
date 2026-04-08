@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend docker-up docker-down docker-build
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend docker-up docker-down docker-build release
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -157,3 +157,9 @@ docker-build:
 	@echo "Building services with docker-compose..."
 	cd backend && docker-compose build
 	@echo "Services built."
+
+release:
+	@echo "Running goreleaser to create releases..."
+	@echo "Version: $(VERSION)"
+	@echo "Build ID: $(BUILD_ID)"
+	cd backend && GITHUB_OWNER=odstx GITHUB_REPO=kaleidoscope goreleaser release --clean --timeout 10m

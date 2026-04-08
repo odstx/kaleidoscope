@@ -1,0 +1,66 @@
+builds:
+  - id: kaleidoscope
+    dir: .
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - GOPROXY=https://goproxy.cn,direct
+    ldflags:
+      - -s -w
+      - -X kaleidoscope/version.Version={{ .Version }}
+      - -X kaleidoscope/version.BuildID={{ .ShortCommit }}
+      - -X kaleidoscope/version.BuildTime={{ .Date }}
+      - -X kaleidoscope/version.GitCommit={{ .Commit }}
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - format: zip
+        when: os == "windows"
+    files:
+      - docs/**
+      - config.example.yaml
+
+checksum:
+  name: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: realtime
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: "{{ .Env.GITHUB_OWNER }}"
+    name: "{{ .Env.GITHUB_REPO }}"
+  draft: false
+
+dockers:
+  - image_templates:
+      - "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:{{ .Tag }}"
+      - "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:latest"
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    context: .
+    buildx: true
+
+docker_manifests:
+  - name_template: "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:{{ .Tag }}-amd64"
+  - name_template: "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:latest"
+    image_templates:
+      - "ghcr.io/{{ .Env.GITHUB_OWNER }}/kaleidoscope-backend:latest-amd64"
