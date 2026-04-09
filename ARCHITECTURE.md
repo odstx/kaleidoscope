@@ -8,8 +8,47 @@ The microservice proxy enables the backend to route requests to downstream micro
 
 ### Request Flow
 
-```
-Client -> Backend API (/app/:appname/*) -> Microservice Proxy -> Target Service (http://:appname.service/*)
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Backend
+    participant Proxy as Microservice Proxy
+    participant Database
+    participant Service as :appname.service
+
+    Client->>Backend: GET /app/myapp/api/users
+    Backend->>Proxy: Pass request
+    
+    rect rgb(240, 248, 255)
+        Note over Proxy: Authentication Check
+        Proxy->>Client: Check Authorization header
+        alt JWT or Hawk
+            Client->>Backend: Bearer token / Hawk auth
+        else No Auth
+            Backend-->>Client: 401 Unauthorized
+            return
+        end
+    end
+    
+    rect rgb(230, 250, 230)
+        Note over Proxy: Query User Info
+        Proxy->>Database: SELECT username FROM users WHERE uid = ?
+        Database->>Proxy: username
+    end
+    
+    rect rgb(255, 240, 240)
+        Note over Proxy: Create OTEL Span
+        Proxy->>Proxy: Start span with app.name, target.url, user.id
+    end
+    
+    rect rgb(255, 250, 240)
+        Note over Proxy: Forward Request
+        Proxy->>Service: GET /api/users<br/>X-UID: user-id<br/>X-Username: username<br/>trace-context headers
+        Service->>Proxy: Response
+        Proxy->>Proxy: End span
+    end
+    
+    Proxy->>Client: Forward Response
 ```
 
 ### Routing Rules
