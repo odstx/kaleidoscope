@@ -15,6 +15,7 @@ Harness 驱动的应用。
 - [开发规范](./AGENTS.md) - 代码规范、架构设计
 - [贡献指南](./CONTRIBUTING.md) - 开发流程、PR 规范
 - [安装部署](./INSTALL.md) - 环境配置、部署流程
+- [架构设计](./ARCHITECTURE.md) - 微服务代理和微前端架构
 
 ## License
 
