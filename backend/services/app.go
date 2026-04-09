@@ -20,7 +20,7 @@ func (as *AppService) GetDB() *gorm.DB {
 
 func (as *AppService) GetAllApps() ([]models.App, error) {
 	var apps []models.App
-	err := as.db.Order("`order` ASC").Find(&apps).Error
+	err := as.db.Order("id ASC").Find(&apps).Error
 	return apps, err
 }
 
