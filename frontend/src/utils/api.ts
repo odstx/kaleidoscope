@@ -141,3 +141,20 @@ export async function disableHawk(): Promise<void> {
     throw new Error(error.error || 'Failed to disable Hawk');
   }
 }
+
+export async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(`${getBaseUrl()}${endpoint}`, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options?.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API call failed: ${response.status}`);
+  }
+
+  return response.json();
+}

@@ -346,3 +346,21 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 
 	return nil
 }
+
+func (s *UserService) UpdateUsername(userID uint, newUsername string) error {
+	if newUsername == "" {
+		return errors.New("username is required")
+	}
+
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return fmt.Errorf("user not found: %w", err)
+	}
+
+	user.Username = newUsername
+	if err := s.db.Save(&user).Error; err != nil {
+		return fmt.Errorf("failed to update username: %w", err)
+	}
+
+	return nil
+}

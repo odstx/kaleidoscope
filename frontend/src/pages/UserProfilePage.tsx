@@ -11,6 +11,7 @@ interface UserInfo {
   email: string
   id?: number
   uid?: string
+  username?: string
   totp_enabled?: boolean
   hawk_enabled?: boolean
 }
@@ -29,6 +30,10 @@ export default function UserProfilePage() {
   const [hawkLoading, setHawkLoading] = useState(false)
   const [hawkKey, setHawkKey] = useState<string | null>(null)
   const [hawkError, setHawkError] = useState<string | null>(null)
+  const [usernameEditing, setUsernameEditing] = useState(false)
+  const [usernameValue, setUsernameValue] = useState("")
+  const [usernameLoading, setUsernameLoading] = useState(false)
+  const [usernameError, setUsernameError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -253,6 +258,49 @@ export default function UserProfilePage() {
     }
   }
 
+  const handleEditUsername = () => {
+    setUsernameValue(user?.username || "")
+    setUsernameEditing(true)
+    setUsernameError(null)
+  }
+
+  const handleCancelUsername = () => {
+    setUsernameEditing(false)
+    setUsernameValue("")
+    setUsernameError(null)
+  }
+
+  const handleSaveUsername = async () => {
+    const token = localStorage.getItem("token")
+    if (!token || !usernameValue.trim()) return
+
+    setUsernameLoading(true)
+    setUsernameError(null)
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/username`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username: usernameValue.trim() }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || t("profile.username.updateError"))
+      }
+
+      setUser(prev => prev ? { ...prev, username: usernameValue.trim() } : null)
+      setUsernameEditing(false)
+      setUsernameValue("")
+    } catch (error) {
+      setUsernameError(error instanceof Error ? error.message : t("profile.username.updateError"))
+    } finally {
+      setUsernameLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -272,10 +320,51 @@ export default function UserProfilePage() {
             <CardDescription>{t("profile.accountDetailsDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
+            {usernameError && (
+              <div className="mb-4 rounded-md bg-destructive/10 p-3 text-destructive">
+                {usernameError}
+              </div>
+            )}
             <div className="space-y-4">
               <div className="flex justify-between border-b pb-2">
                 <span className="text-muted-foreground">{t("profile.email")}</span>
                 <span className="font-medium">{user?.email}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2 items-center">
+                <span className="text-muted-foreground">{t("profile.username")}</span>
+                {usernameEditing ? (
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      value={usernameValue}
+                      onChange={(e) => setUsernameValue(e.target.value)}
+                      placeholder={t("profile.usernamePlaceholder")}
+                      className="w-48"
+                      disabled={usernameLoading}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveUsername}
+                      disabled={usernameLoading || !usernameValue.trim()}
+                    >
+                      {usernameLoading ? t("common.loading") : t("common.confirm")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelUsername}
+                      disabled={usernameLoading}
+                    >
+                      {t("common.cancel")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 items-center">
+                    <span className="font-medium">{user?.username || "-"}</span>
+                    <Button size="sm" variant="outline" onClick={handleEditUsername}>
+                      {t("profile.usernameEdit")}
+                    </Button>
+                  </div>
+                )}
               </div>
               {user?.uid && (
                 <div className="flex justify-between border-b pb-2">

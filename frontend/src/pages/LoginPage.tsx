@@ -29,7 +29,7 @@ export default function LoginPage() {
     console.log("Fetching frontend config...")
     fetchFrontendConfig().then((config) => {
       console.log("Config fetched:", config)
-      setOidcEnabled(config.enabled && config.issuerUrl && config.clientId)
+      setOidcEnabled(Boolean(config.enabled && config.issuerUrl && config.clientId))
     }).catch((err) => {
       console.error("Config fetch error:", err)
     })

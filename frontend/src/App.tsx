@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import MicroAppPage from './pages/MicroAppPage';
 import { Footer } from './components/Footer';
 import { Navbar } from './components/Navbar';
 import { AuthProvider } from './contexts/AuthContext';
@@ -26,6 +27,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<UserProfilePage />} />
+            <Route path="/app/:appname" element={<MicroAppPage />} />
             <Route path="/" element={<LoginPage />} />
           </Routes>
         </Router>

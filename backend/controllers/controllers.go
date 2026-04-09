@@ -13,9 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
+func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, appService *services.AppService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
 	userController := NewUserController(logger, userService, oidcService)
 	systemController := NewSystemController(logger, cfg)
+	appController := NewAppController(logger, appService)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -29,6 +30,7 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/forgot-password", rateLimiter.RateLimit(), userController.ForgotPassword)
 				userGroup.POST("/reset-password", rateLimiter.RateLimit(), userController.ResetPassword)
 				userGroup.GET("/info", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.GetUserInfo)
+				userGroup.PUT("/username", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.UpdateUsername)
 				userGroup.POST("/totp/setup", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.SetupTOTP)
 				userGroup.POST("/totp/verify", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.VerifyTOTP)
 				userGroup.POST("/totp/enable", middleware.CombinedAuth(cfg, db), rateLimiter.RateLimit(), userController.EnableTOTP)
@@ -45,6 +47,7 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				userGroup.POST("/forgot-password", userController.ForgotPassword)
 				userGroup.POST("/reset-password", userController.ResetPassword)
 				userGroup.GET("/info", middleware.CombinedAuth(cfg, db), userController.GetUserInfo)
+				userGroup.PUT("/username", middleware.CombinedAuth(cfg, db), userController.UpdateUsername)
 				userGroup.POST("/totp/setup", middleware.CombinedAuth(cfg, db), userController.SetupTOTP)
 				userGroup.POST("/totp/verify", middleware.CombinedAuth(cfg, db), userController.VerifyTOTP)
 				userGroup.POST("/totp/enable", middleware.CombinedAuth(cfg, db), userController.EnableTOTP)
@@ -67,6 +70,11 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 				systemGroup.GET("/info", systemController.GetSystemInfo)
 				systemGroup.GET("/config", systemController.GetConfig)
 			}
+		}
+
+		appsGroup := v1.Group("/apps")
+		{
+			appsGroup.GET("", middleware.CombinedAuth(cfg, db), appController.GetApps)
 		}
 	}
 }
