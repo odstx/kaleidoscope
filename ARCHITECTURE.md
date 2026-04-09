@@ -18,37 +18,20 @@ sequenceDiagram
 
     Client->>Backend: GET /app/myapp/api/users
     Backend->>Proxy: Pass request
-    
-    rect rgb(240, 248, 255)
-        Note over Proxy: Authentication Check
-        Proxy->>Client: Check Authorization header
-        alt JWT or Hawk
-            Client->>Backend: Bearer token / Hawk auth
-        else No Auth
-            Backend-->>Client: 401 Unauthorized
-            return
-        end
+    Note over Proxy: Authentication Check
+    alt JWT or Hawk
+        Client->>Backend: Bearer token / Hawk auth
+    else No Auth
+        Backend-->>Client: 401 Unauthorized
     end
-    
-    rect rgb(230, 250, 230)
-        Note over Proxy: Query User Info
-        Proxy->>Database: SELECT username FROM users WHERE uid = ?
-        Database->>Proxy: username
-    end
-    
-    rect rgb(255, 240, 240)
-        Note over Proxy: Create OTEL Span
-        Proxy->>Proxy: Start span with app.name, target.url, user.id
-    end
-    
-    rect rgb(255, 250, 240)
-        Note over Proxy: Forward Request
-        Proxy->>Service: GET /api/users<br/>X-UID: user-id<br/>X-Username: username<br/>trace-context headers
-        Service->>Proxy: Response
-        Proxy->>Proxy: End span
-    end
-    
-    Proxy->>Client: Forward Response
+    Note over Proxy: Query User Info
+    Proxy->>Database: SELECT username WHERE uid = ?
+    Database-->>Proxy: username
+    Note over Proxy: Create OTEL Span
+    Note over Proxy: Forward Request
+    Proxy->>Service: GET /api/users (X-UID, X-Username, trace headers)
+    Service-->>Proxy: Response
+    Proxy-->>Client: Forward Response
 ```
 
 ### Routing Rules
@@ -111,23 +94,15 @@ sequenceDiagram
     participant Backend as Kaleidoscope API
     participant Pod as Pod Web Component
 
-    rect rgb(240, 248, 255)
-        Note over Frontend: Route: /app/:appname
-        User->>Frontend: Navigate to /app/pod
-        Frontend->>User: Redirect to Login if not authenticated
-    end
-
-    rect rgb(230, 250, 230)
-        Note over Frontend: Load MicroApp
-        Frontend->>Frontend: Check authentication
+    User->>Frontend: Navigate to /app/pod
+    Note over Frontend: Check authentication
+    alt Not authenticated
+        Frontend->>User: Redirect to Login
+    else Authenticated
         Frontend->>Browser: Load /app/pod.js (dynamic script)
         Browser->>Frontend: Script loaded
         Frontend->>Browser: customElements.whenDefined('pod-app')
-    end
-
-    rect rgb(255, 240, 240)
-        Note over Frontend: Render Web Component
-        Frontend->>Browser: Create <pod-app> element
+        Frontend->>Browser: Create pod-app element
         Browser->>Pod: Mount React app in shadow DOM
     end
 ```
