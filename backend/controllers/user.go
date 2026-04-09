@@ -167,6 +167,7 @@ func (uc *UserController) GetUserInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"id":           user.ID,
 		"uid":          user.UID,
+		"username":     user.Username,
 		"email":        user.Email,
 		"totp_enabled": user.TOTPEnabled,
 		"hawk_enabled": user.HawkEnabled,
@@ -369,6 +370,44 @@ func (uc *UserController) DisableHawk(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Hawk disabled successfully"})
+}
+
+type UpdateUsernameRequest struct {
+	Username string `json:"username" binding:"required"`
+}
+
+// UpdateUsername godoc
+// @Summary      Update username
+// @Description  Update the username for the current user
+// @Tags         users
+// @Security     BearerAuth
+// @Security     HawkAuth
+// @Accept       json
+// @Produce      json
+// @Param        request  body      UpdateUsernameRequest  true  "Update username request"
+// @Success      200  {object}  map[string]interface{}  "Username updated successfully"
+// @Failure      400  {object}  map[string]interface{}  "Invalid request"
+// @Failure      401  {object}  map[string]interface{}  "Unauthorized"
+// @Router       /users/username [put]
+func (uc *UserController) UpdateUsername(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	var req UpdateUsernameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		uc.logger.Error("Invalid update username request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	uc.logger.Info("Update username request", zap.Uint("userID", userID), zap.String("username", req.Username))
+
+	if err := uc.userService.UpdateUsername(userID, req.Username); err != nil {
+		uc.logger.Error("Failed to update username", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Username updated successfully"})
 }
 
 // ForgotPassword godoc

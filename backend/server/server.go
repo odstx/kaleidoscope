@@ -55,7 +55,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 
-	if err := db.DB.AutoMigrate(&models.User{}); err != nil {
+	if err := db.DB.AutoMigrate(&models.User{}, &models.App{}); err != nil {
 		logger.Fatal("Failed to run database migrations", zap.Error(err))
 	}
 
@@ -70,6 +70,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	userService := services.NewUserService(db.DB, asynqClient)
 	oidcService := services.NewOIDCService(&config.OIDC)
+	appService := services.NewAppService(db.DB)
 
 	var rateLimiter *middleware.RateLimiter
 	if config.RateLimit.Enabled {
@@ -97,7 +98,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	controllers.RegisterRoutes(router, logger, userService, oidcService, rateLimiter, config, db.DB)
+	controllers.RegisterRoutes(router, logger, userService, oidcService, appService, rateLimiter, config, db.DB)
 
 	if config.Server.Environment == "production" {
 		staticPath := config.Server.StaticFilesPath

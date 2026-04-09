@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/contexts/AuthContext"
 import { handleOidcCallback } from "@/utils/oidc"
-import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardTitle, CardHeader } from "@/components/ui/card"
 
 export default function OIDCCallbackPage() {
   const { t } = useTranslation()

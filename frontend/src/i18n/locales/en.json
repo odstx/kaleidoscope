@@ -9,7 +9,9 @@
     "dashboard": "Dashboard",
     "menu": "Menu",
     "profile": "Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "apps": "Applications",
+    "noApps": "No applications available"
   },
   "login": {
     "title": "User Login",
@@ -104,6 +106,10 @@
     "accountDetails": "Account Details",
     "accountDetailsDesc": "Your personal information",
     "email": "Email:",
+    "username": "Username:",
+    "usernamePlaceholder": "Enter username",
+    "usernameEdit": "Edit",
+    "usernameUpdateError": "Failed to update username",
     "userId": "User ID:",
     "uid": "UID:",
     "fetchError": "Failed to fetch user information",

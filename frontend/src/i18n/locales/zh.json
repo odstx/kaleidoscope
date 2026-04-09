@@ -9,7 +9,9 @@
     "dashboard": "控制台",
     "menu": "菜单",
     "profile": "个人信息",
-    "logout": "退出登录"
+    "logout": "退出登录",
+    "apps": "应用",
+    "noApps": "暂无可用应用"
   },
   "login": {
     "title": "用户登录",
@@ -104,6 +106,10 @@
     "accountDetails": "账户详情",
     "accountDetailsDesc": "您的个人信息",
     "email": "邮箱:",
+    "username": "用户名:",
+    "usernamePlaceholder": "请输入用户名",
+    "usernameEdit": "编辑",
+    "usernameUpdateError": "更新用户名失败",
     "userId": "用户ID:",
     "uid": "UID:",
     "fetchError": "获取用户信息失败",

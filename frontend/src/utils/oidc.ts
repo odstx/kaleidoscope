@@ -44,14 +44,7 @@ export async function fetchFrontendConfig(): Promise<OidcConfig> {
   }
 }
 
-export function getOidcConfig(): OidcConfig {
-  return {
-    enabled: import.meta.env.VITE_OIDC_ENABLED === 'true',
-    issuerUrl: import.meta.env.VITE_OIDC_ISSUER_URL || '',
-    clientId: import.meta.env.VITE_OIDC_CLIENT_ID || '',
-    redirectUri: import.meta.env.VITE_OIDC_REDIRECT_URI || '',
-  }
-}
+
 
 export async function getOidcAuthUrl(): Promise<string> {
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/users/oidc/login`, {
