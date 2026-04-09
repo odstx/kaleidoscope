@@ -11,16 +11,17 @@ import (
 
 // Config holds all configuration for our application
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Database  DatabaseConfig  `mapstructure:"database"`
-	Redis     RedisConfig     `mapstructure:"redis"`
-	Log       LogConfig       `mapstructure:"log"`
-	CORS      CORSConfig      `mapstructure:"cors"`
-	RateLimit RateLimitConfig `mapstructure:"rate_limit"`
-	OTEL      OTELConfig      `mapstructure:"otel"`
-	Hawk      HawkConfig      `mapstructure:"hawk"`
-	Email     EmailConfig     `mapstructure:"email"`
-	OIDC      OIDCConfig      `mapstructure:"oidc"`
+	Server       ServerConfig       `mapstructure:"server"`
+	Database     DatabaseConfig     `mapstructure:"database"`
+	Redis        RedisConfig        `mapstructure:"redis"`
+	Log          LogConfig          `mapstructure:"log"`
+	CORS         CORSConfig         `mapstructure:"cors"`
+	RateLimit    RateLimitConfig    `mapstructure:"rate_limit"`
+	OTEL         OTELConfig         `mapstructure:"otel"`
+	Hawk         HawkConfig         `mapstructure:"hawk"`
+	Email        EmailConfig        `mapstructure:"email"`
+	OIDC         OIDCConfig         `mapstructure:"oidc"`
+	Microservice MicroserviceConfig `mapstructure:"microservice"`
 }
 
 type ServerConfig struct {
@@ -113,6 +114,11 @@ type OIDCConfig struct {
 	ClientSecret string   `mapstructure:"client_secret"`
 	RedirectURI  string   `mapstructure:"redirect_uri"`
 	Scopes       []string `mapstructure:"scopes"`
+}
+
+type MicroserviceConfig struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	ServiceDomain string `mapstructure:"service_domain"`
 }
 
 func generateDefaultConfig(path string) error {
@@ -258,6 +264,8 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("oidc.client_secret", "")
 	viper.SetDefault("oidc.redirect_uri", "http://localhost:9000/api/v1/users/oidc/callback")
 	viper.SetDefault("oidc.scopes", []string{"openid", "profile", "email"})
+	viper.SetDefault("microservice.enabled", false)
+	viper.SetDefault("microservice.service_domain", "service")
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

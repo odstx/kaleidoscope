@@ -83,6 +83,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	router.Use(middleware.Logger(logger))
 	router.Use(gin.Recovery())
 	router.Use(middleware.PrometheusMetrics())
+	router.Use(middleware.MicroserviceProxy(config, db.DB))
 
 	if config.OTEL.Enabled {
 		router.Use(otelgin.Middleware(config.OTEL.ServiceName))
