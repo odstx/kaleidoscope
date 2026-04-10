@@ -1,23 +1,43 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Bot, Maximize2, PanelRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import { apiCall } from '@/utils/api'
 
 type Layout = 'floating' | 'fullscreen'
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface AgentChatProps {
   onLayoutChange?: (layout: Layout, isOpen: boolean) => void
   embedded?: boolean
 }
 
+const defaultWelcome = 'Hi! I am your AI assistant. How can I help you today?'
+
 export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) {
   const { isAuthenticated } = useAuth()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [layout, setLayout] = useState<Layout>('floating')
   const [position, setPosition] = useState({ right: 16, bottom: 64 })
+  const [messages, setMessages] = useState<Message[]>([
+    { role: 'assistant', content: defaultWelcome },
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const dragData = useRef({ isDragging: false, startX: 0, startY: 0, startRight: 16, startBottom: 64 })
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   if (!isAuthenticated) return null
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
@@ -29,12 +49,11 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
       setLayout('floating')
       setOpen(false)
       onLayoutChange?.('floating', false)
-    } else if (embedded) {
-      setOpen(false)
-      onLayoutChange?.('floating', false)
-    } else {
+    } else if (!embedded) {
       setOpen(false)
       onLayoutChange?.(layout, false)
+    } else {
+      onLayoutChange?.('floating', false)
     }
   }
 
@@ -107,6 +126,30 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
     return {}
   }
 
+  const handleSend = async () => {
+    if (!input.trim() || loading) return
+    const userMessage = input.trim()
+    setInput('')
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }])
+    setLoading(true)
+
+    try {
+      const resp = await apiCall<{ message: string }>('/api/v1/agent/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: userMessage }),
+      })
+      setMessages((prev) => [...prev, { role: 'assistant', content: resp.message }])
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('agent.error') },
+      ])
+    } finally {
+      setLoading(false)
+      setTimeout(scrollToBottom, 100)
+    }
+  }
+
   const renderToggleButton = () => {
     if (open) return null
     return (
@@ -137,11 +180,11 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
     if (!open && !embedded) return null
     return (
       <div
-        className={`flex flex-col ${embedded || layout === 'fullscreen' ? 'h-full' : ''} ${layout === 'floating' && !embedded ? 'fixed z-50 bg-background border border-border rounded-lg shadow-xl' : ''} ${layout === 'fullscreen' ? 'fixed inset-0 z-50 bg-background' : ''}`}
+        className={`flex flex-col ${embedded || layout === 'fullscreen' ? 'h-full' : ''} ${layout === 'floating' && !embedded ? 'fixed z-50 bg-background border border-input rounded-lg shadow-xl' : ''} ${layout === 'fullscreen' ? 'fixed inset-0 z-50 bg-background' : ''}`}
         style={!embedded ? getContainerStyle() : {}}
       >
         <div
-          className={`h-14 px-4 border-b border-border flex items-center justify-between select-none ${layout === 'floating' ? 'cursor-move' : ''}`}
+          className={`h-14 px-4 border-b border-input flex items-center justify-between select-none ${layout === 'floating' ? 'cursor-move' : ''}`}
           onMouseDown={layout === 'floating' ? handleMouseDown : undefined}
           onMouseMove={layout === 'floating' ? handleMouseMove : undefined}
           onMouseUp={layout === 'floating' ? handleMouseUp : undefined}
@@ -149,7 +192,7 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
         >
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            <span className="font-semibold">AI Assistant</span>
+            <span className="font-semibold">{t('agent.title')}</span>
           </div>
           <div className="flex items-center gap-1">
             {!embedded && (
@@ -163,19 +206,43 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg p-3 bg-muted">
-              Hi! I am your AI assistant. How can I help you today?
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  msg.role === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted'
+                }`}
+              >
+                {msg.content}
+              </div>
             </div>
-          </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] rounded-lg p-3 bg-muted">
+                {t('agent.thinking')}
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
-        <div className="flex gap-2 p-4 border-t border-border">
+        <div className="flex gap-2 p-4 border-t border-input">
           <input
-            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder={t('agent.placeholder')}
             className="flex-1 px-3 py-2 rounded-md border bg-background"
-            disabled
+            disabled={loading}
           />
-          <Button disabled>Send</Button>
+          <Button onClick={handleSend} disabled={loading || !input.trim()}>
+            {t('agent.send')}
+          </Button>
         </div>
       </div>
     )
