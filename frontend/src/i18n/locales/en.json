@@ -159,5 +159,13 @@
     "auto": "Auto",
     "light": "Light",
     "dark": "Dark"
+  },
+  "agent": {
+    "title": "AI Assistant",
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "thinking": "Thinking...",
+    "error": "Sorry, something went wrong. Please try again.",
+    "welcome": "Hi! I am your AI assistant. How can I help you today?"
   }
 }

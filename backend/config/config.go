@@ -22,6 +22,7 @@ type Config struct {
 	Email        EmailConfig        `mapstructure:"email"`
 	OIDC         OIDCConfig         `mapstructure:"oidc"`
 	Microservice MicroserviceConfig `mapstructure:"microservice"`
+	LLM          LLMConfig          `mapstructure:"llm"`
 }
 
 type ServerConfig struct {
@@ -118,7 +119,16 @@ type OIDCConfig struct {
 
 type MicroserviceConfig struct {
 	Enabled       bool   `mapstructure:"enabled"`
+	Host          string `mapstructure:"host"`
+	Port          string `mapstructure:"port"`
 	ServiceDomain string `mapstructure:"service_domain"`
+}
+
+type LLMConfig struct {
+	URL          string `mapstructure:"url"`
+	APIKey       string `mapstructure:"api_key"`
+	Model        string `mapstructure:"model"`
+	SystemPrompt string `mapstructure:"system_prompt"`
 }
 
 func generateDefaultConfig(path string) error {

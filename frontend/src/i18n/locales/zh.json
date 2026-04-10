@@ -159,5 +159,13 @@
     "auto": "自动",
     "light": "亮色",
     "dark": "暗色"
+  },
+  "agent": {
+    "title": "AI 助手",
+    "placeholder": "输入消息...",
+    "send": "发送",
+    "thinking": "思考中...",
+    "error": "抱歉，出现错误了，请重试。",
+    "welcome": "你好！我是你的 AI 助手，有什么可以帮你的吗？"
   }
 }

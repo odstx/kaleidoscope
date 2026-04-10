@@ -13,10 +13,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, appService *services.AppService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
+func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, appService *services.AppService, agentService *services.AgentService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
 	userController := NewUserController(logger, userService, oidcService)
 	systemController := NewSystemController(logger, cfg)
 	appController := NewAppController(logger, appService)
+	agentController := NewAgentController(logger, agentService)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -75,6 +76,11 @@ func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *service
 		appsGroup := v1.Group("/apps")
 		{
 			appsGroup.GET("", middleware.CombinedAuth(cfg, db), appController.GetApps)
+		}
+
+		agentGroup := v1.Group("/agent")
+		{
+			agentGroup.POST("/chat", middleware.CombinedAuth(cfg, db), agentController.Chat)
 		}
 	}
 }
