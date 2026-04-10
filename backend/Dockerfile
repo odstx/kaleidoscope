@@ -16,8 +16,9 @@ RUN apk add --no-cache git
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Install swag CLI
+# Install swag CLI and add to PATH
 RUN go install github.com/swaggo/swag/cmd/swag@latest
+ENV PATH="/root/go/bin:${PATH}"
 
 # Copy source code
 COPY . .

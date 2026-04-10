@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend docker-up docker-down docker-build release
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend docker-up docker-down docker-build release install
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -163,3 +163,17 @@ release:
 	@echo "Version: $(VERSION)"
 	@echo "Build ID: $(BUILD_ID)"
 	cd backend && GITHUB_OWNER=odstx GITHUB_REPO=kaleidoscope goreleaser release --clean --timeout 10m
+
+install:
+	@echo "Installing dependencies for source deployment..."
+	@echo "Installing Go module dependencies..."
+	cd backend && go mod download
+	@echo "Installing frontend dependencies..."
+	cd frontend && bun install
+	@echo "Installing Swift dependencies..."
+	cd swift && swift package resolve
+	@echo "Checking required tools..."
+	@which psql >/dev/null 2>&1 || echo "Warning: psql not found. Install postgresql-client for database migrations."
+	@which node >/dev/null 2>&1 || echo "Warning: node not found. Required for frontend build."
+	@which bun >/dev/null 2>&1 || echo "Warning: bun not found. Required for frontend development."
+	@echo "Installation complete!"
