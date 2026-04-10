@@ -11,8 +11,10 @@ export default function MicroAppPage() {
   const containerRef = useRef<HTMLDivElement>(null)
   const loadedRef = useRef(false)
 
-  const scriptUrl = appname ? `/app/${appname}.js` : null
-  const tagName = appname ? `${appname}-app` : null
+  const APP_NAME_PATTERN = /^[a-z][a-z0-9-]*$/
+  const safeAppName = appname && APP_NAME_PATTERN.test(appname) ? appname : null
+  const scriptUrl = safeAppName ? `/app/${safeAppName}.js` : null
+  const tagName = safeAppName ? `${safeAppName}-app` : null
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,7 +76,7 @@ export default function MicroAppPage() {
       <div className="min-h-screen bg-background p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading {appname}... </p>
+          <p className="text-muted-foreground">Loading {safeAppName}... </p>
         </div>
       </div>
     )
