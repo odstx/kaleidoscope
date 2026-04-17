@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"kaleidoscope/config"
+	"kaleidoscope/etcd"
 	"kaleidoscope/models"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func MicroserviceProxy(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
+func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client) gin.HandlerFunc {
 	if !cfg.Microservice.Enabled {
 		return func(c *gin.Context) {
 			c.Next()
@@ -62,17 +63,29 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB) gin.HandlerFunc {
 			targetPath = "/" + parts[1]
 		}
 
-		targetURL := fmt.Sprintf("http://%s.%s%s", appName, cfg.Microservice.ServiceDomain, targetPath)
+		endpoint, err := etcdClient.GetEndpoint(appName)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service unavailable"})
+			c.Abort()
+			return
+		}
+
+		targetURL := fmt.Sprintf("http://%s%s", endpoint, targetPath)
+
 		target, _ := url.Parse(targetURL)
 
 		proxy := httputil.NewSingleHostReverseProxy(target)
 
 		originalDirector := proxy.Director
 		proxy.Director = func(req *http.Request) {
+
 			originalDirector(req)
-			req.Header.Set("X-UID", uidStr)
+			req.URL = target
+
+			req.Header.Set("X-USER-UID", uidStr)
+			req.Header.Set("X-SOURCE", "kaleidoscope")
 			if username != "" {
-				req.Header.Set("X-Username", username)
+				req.Header.Set("X-User-Name", username)
 			}
 			otel.GetTextMapPropagator().Inject(req.Context(), propagation.HeaderCarrier(req.Header))
 		}
