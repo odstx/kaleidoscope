@@ -4,18 +4,17 @@
 [![Test Coverage](https://img.shields.io/badge/coverage-auto-brightgreen)](https://github.com/odstx/kaleidoscope/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Harness 驱动的应用。
+Harness-driven application.
 
 
+## Documentation
 
-## 文档
-
-- [技术栈](./TECH-STACK.md) - 技术选型详情
-- [协作文档](./COLLABORATION.md) - 快速开始、常用命令、部署
-- [开发规范](./AGENTS.md) - 代码规范、架构设计
-- [贡献指南](./CONTRIBUTING.md) - 开发流程、PR 规范
-- [安装部署](./INSTALL.md) - 环境配置、部署流程
-- [架构设计](./ARCHITECTURE.md) - 微服务代理和微前端架构
+- [Tech Stack](./TECH-STACK.md) - Technology choices and details
+- [Collaboration](./COLLABORATION.md) - Quick start, common commands, deployment
+- [Development Guide](./AGENTS.md) - Code standards, architecture design
+- [Contributing](./CONTRIBUTING.md) - Development workflow, PR guidelines
+- [Installation](./INSTALL.md) - Environment setup, deployment process
+- [Architecture](./ARCHITECTURE.md) - Microservice proxy and micro-frontend architecture
 
 ## License
 

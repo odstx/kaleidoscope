@@ -1,29 +1,29 @@
-# 贡献指南
+# Contributing Guide
 
-感谢您对本项目的关注！本文档将帮助您了解如何参与项目开发。
+Thank you for your interest in contributing! This guide will help you understand how to participate in the project.
 
-## 目录
+## Table of Contents
 
-- [行为准则](#行为准则)
-- [开发环境设置](#开发环境设置)
-- [开发流程](#开发流程)
-- [代码规范](#代码规范)
-- [提交规范](#提交规范)
-- [分支策略](#分支策略)
-- [Pull Request 流程](#pull-request-流程)
-- [测试要求](#测试要求)
-- [问题反馈](#问题反馈)
+- [Code of Conduct](#code-of-conduct)
+- [Development Environment](#development-environment)
+- [Development Workflow](#development-workflow)
+- [Code Standards](#code-standards)
+- [Commit Standards](#commit-standards)
+- [Branch Strategy](#branch-strategy)
+- [Pull Request Process](#pull-request-process)
+- [Testing Requirements](#testing-requirements)
+- [Issue Reporting](#issue-reporting)
 
-## 行为准则
+## Code of Conduct
 
-- 尊重所有贡献者
-- 保持专业和建设性的讨论
-- 接受建设性批评
-- 关注对社区最有利的事情
+- Respect all contributors
+- Maintain professional and constructive discussions
+- Accept constructive criticism
+- Focus on what benefits the community
 
-## 开发环境设置
+## Development Environment
 
-### 系统要求
+### System Requirements
 
 - Go 1.25+
 - Bun 1.3+
@@ -31,118 +31,118 @@
 - Redis 7+
 - Git
 
-### 安装步骤
+### Installation Steps
 
-1. Fork 并克隆仓库
+1. Fork and clone the repository
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/kaleidoscope.git
 cd kaleidoscope
 ```
 
-2. 安装后端依赖
+2. Install backend dependencies
 
 ```bash
 cd backend
 go mod download
 ```
 
-3. 安装前端依赖
+3. Install frontend dependencies
 
 ```bash
 cd frontend
 bun install
 ```
 
-4. 配置环境变量
+4. Configure environment variables
 
 ```bash
-# 后端
+# Backend
 cp backend/.env.example backend/.env
 
-# 前端
+# Frontend
 cp frontend/.env.example frontend/.env.local
 ```
 
-5. 启动开发服务器
+5. Start development server
 
 ```bash
 make dev
 ```
 
-## 开发流程
+## Development Workflow
 
-### 1. 创建功能分支
+### 1. Create a feature branch
 
 ```bash
 git checkout -b feature/your-feature-name
 ```
 
-### 2. 进行开发
+### 2. Make your changes
 
-- 遵循 [AGENTS.md](./AGENTS.md) 中的代码规范
-- 编写清晰的代码和注释
-- 添加必要的测试
+- Follow code standards in [AGENTS.md](./AGENTS.md)
+- Write clear code and comments
+- Add necessary tests
 
-### 3. 本地测试
+### 3. Test locally
 
 ```bash
-# 运行所有测试
+# Run all tests
 make test
 
-# 或分别运行
-make test-backend  # 后端测试
-make test-frontend # 前端测试
-make test-e2e      # E2E 测试
+# Or run separately
+make test-backend  # Backend tests
+make test-frontend # Frontend tests
+make test-e2e      # E2E tests
 ```
 
-### 4. 代码检查
+### 4. Run code checks
 
 ```bash
-# 后端
+# Backend
 cd backend && go fmt ./... && go vet ./...
 
-# 前端
+# Frontend
 cd frontend && bun run lint
 ```
 
-### 5. 提交更改
+### 5. Commit changes
 
 ```bash
 git add .
 git commit -m "feat: add your feature description"
 ```
 
-### 6. 推送并创建 PR
+### 6. Push and create PR
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-## 代码规范
+## Code Standards
 
-### 后端 (Go)
+### Backend (Go)
 
-- 遵循 [Effective Go](https://golang.org/doc/effective_go) 规范
-- 使用 `gofmt` 格式化代码
-- 使用 `go vet` 检查代码
-- 添加适当的注释和文档字符串
-- 错误处理要明确，不要忽略错误
+- Follow [Effective Go](https://golang.org/doc/effective_go) guidelines
+- Format code with `gofmt`
+- Check code with `go vet`
+- Add appropriate comments and docstrings
+- Handle errors explicitly, don't ignore them
 
-### 前端 (TypeScript/React)
+### Frontend (TypeScript/React)
 
-详见 [AGENTS.md](./AGENTS.md)
+See [AGENTS.md](./AGENTS.md) for details.
 
-关键点：
-- 使用 TypeScript strict 模式
-- 组件使用函数式组件 + hooks
-- 使用 `@/` 别名进行导入
-- 遵循 shadcn/ui 组件规范
-- 所有表单使用 react-hook-form + zod
+Key points:
+- Use TypeScript strict mode
+- Use functional components with hooks
+- Use `@/` alias for imports
+- Follow shadcn/ui component standards
+- Use react-hook-form + zod for all forms
 
-## 提交规范
+## Commit Standards
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
 ```
 <type>(<scope>): <subject>
@@ -152,28 +152,28 @@ git push origin feature/your-feature-name
 <footer>
 ```
 
-### Type 类型
+### Type
 
-- `feat`: 新功能
-- `fix`: Bug 修复
-- `docs`: 文档更新
-- `style`: 代码格式（不影响功能）
-- `refactor`: 重构
-- `perf`: 性能优化
-- `test`: 测试相关
-- `chore`: 构建/工具相关
-- `ci`: CI/CD 相关
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `style`: Code formatting (no functional change)
+- `refactor`: Refactoring
+- `perf`: Performance optimization
+- `test`: Test related
+- `chore`: Build/tool related
+- `ci`: CI/CD related
 
-### Scope 范围
+### Scope
 
-- `backend`: 后端相关
-- `frontend`: 前端相关
-- `api`: API 相关
-- `ui`: UI 组件相关
-- `auth`: 认证相关
-- `i18n`: 国际化相关
+- `backend`: Backend related
+- `frontend`: Frontend related
+- `api`: API related
+- `ui`: UI component related
+- `auth`: Authentication related
+- `i18n`: i18n related
 
-### 示例
+### Examples
 
 ```bash
 feat(frontend): add user profile page
@@ -183,183 +183,183 @@ refactor(api): simplify authentication middleware
 test(frontend): add unit tests for LoginForm component
 ```
 
-## 分支策略
+## Branch Strategy
 
-### 分支命名
+### Branch Naming
 
-- `main`: 主分支，生产环境代码
-- `develop`: 开发分支（如果有）
-- `feature/description`: 新功能分支
-- `fix/description`: Bug 修复分支
-- `refactor/description`: 重构分支
-- `docs/description`: 文档更新分支
-- `test/description`: 测试相关分支
+- `main`: Main branch, production code
+- `develop`: Development branch (if applicable)
+- `feature/description`: New feature branch
+- `fix/description`: Bug fix branch
+- `refactor/description`: Refactoring branch
+- `docs/description`: Documentation update branch
+- `test/description`: Test related branch
 
-### 分支流程
+### Branch Flow
 
 ```
-main (生产)
+main (production)
   ↑
   └── feature/xxx → PR → merge
   └── fix/xxx → PR → merge
 ```
 
-1. 从 `main` 创建功能分支
-2. 完成开发和测试
-3. 创建 Pull Request
-4. 通过代码审查和 CI 检查
-5. 合并到 `main`
+1. Create feature branch from `main`
+2. Complete development and testing
+3. Create Pull Request
+4. Pass code review and CI checks
+5. Merge to `main`
 
-## Pull Request 流程
+## Pull Request Process
 
-### 创建 PR 前检查清单
+### Pre-PR Checklist
 
-- [ ] 代码遵循项目规范
-- [ ] 所有测试通过
-- [ ] 新功能有对应测试
-- [ ] 文档已更新（如需要）
-- [ ] 提交信息符合规范
-- [ ] 分支从最新 `main` 创建
+- [ ] Code follows project standards
+- [ ] All tests pass
+- [ ] New features have corresponding tests
+- [ ] Documentation updated (if needed)
+- [ ] Commit message follows standards
+- [ ] Branch created from latest `main`
 
-### PR 标题格式
+### PR Title Format
 
 ```
 <type>(<scope>): <description>
 ```
 
-示例：`feat(frontend): add dark mode support`
+Example: `feat(frontend): add dark mode support`
 
-### PR 描述模板
+### PR Description Template
 
 ```markdown
-## 变更类型
-- [ ] 新功能 (feat)
-- [ ] Bug 修复 (fix)
-- [ ] 重构 (refactor)
-- [ ] 文档更新 (docs)
-- [ ] 其他
+## Change Type
+- [ ] New feature (feat)
+- [ ] Bug fix (fix)
+- [ ] Refactor (refactor)
+- [ ] Documentation update (docs)
+- [ ] Other
 
-## 变更说明
-<!-- 描述本次变更的内容和原因 -->
+## Description
+<!-- Describe what and why -->
 
-## 相关 Issue
-<!-- 关联的 Issue 编号，如: Closes #123 -->
+## Related Issue
+<!-- Link related issue, e.g: Closes #123 -->
 
-## 测试说明
-<!-- 如何测试本次变更 -->
+## Testing
+<!-- How to test this change -->
 
-## 截图
-<!-- 如有 UI 变更，提供截图 -->
+## Screenshots
+<!-- If UI changes, provide screenshots -->
 
-## 检查清单
-- [ ] 代码遵循规范
-- [ ] 测试通过
-- [ ] 文档已更新
+## Checklist
+- [ ] Code follows standards
+- [ ] Tests pass
+- [ ] Documentation updated
 ```
 
-### 代码审查
+### Code Review
 
-- 每个 PR 需要至少 1 个审查批准
-- 审查者应检查：
-  - 代码质量和规范
-  - 测试覆盖率
-  - 潜在问题和改进建议
-  - 文档完整性
+- Each PR requires at least 1 approval
+- Reviewers should check:
+  - Code quality and standards
+  - Test coverage
+  - Potential issues and improvements
+  - Documentation completeness
 
-## 测试要求
+## Testing Requirements
 
-### 后端测试
+### Backend Tests
 
 ```bash
-# 单元测试
+# Unit tests
 cd backend && go test ./... -v
 
-# 测试覆盖率
+# Test coverage
 cd backend && go test ./... -cover
 
-# 特定包测试
+# Specific package test
 cd backend && go test ./services -v
 ```
 
-### 前端测试
+### Frontend Tests
 
 ```bash
 cd frontend
 
-# 单元测试
+# Unit tests
 bun run test
 
-# 测试 UI
+# UI tests
 bun run test:ui
 
-# 测试覆盖率
+# Test coverage
 bun run test:coverage
 
-# 集成测试
+# Integration tests
 bun run test:integration
 
-# E2E 测试
+# E2E tests
 bun run test:e2e
 ```
 
-### 测试规范
+### Testing Standards
 
-- 所有新功能必须有对应测试
-- Bug 修复应包含回归测试
-- 单元测试覆盖率 > 80%
-- 关键路径需要 E2E 测试
-- 测试代码也要遵循代码规范
+- All new features must have corresponding tests
+- Bug fixes should include regression tests
+- Unit test coverage > 80%
+- Key paths need E2E tests
+- Test code should also follow code standards
 
-## 问题反馈
+## Issue Reporting
 
-### Bug 报告
+### Bug Reports
 
-创建 Issue 时请包含：
+Include when creating an issue:
 
-1. **问题描述**: 清晰描述问题
-2. **复现步骤**: 如何复现问题
-3. **期望行为**: 期望发生什么
-4. **实际行为**: 实际发生了什么
-5. **环境信息**: 
+1. **Description**: Clear description of the problem
+2. **Steps to Reproduce**: How to reproduce
+3. **Expected Behavior**: What should happen
+4. **Actual Behavior**: What actually happened
+5. **Environment Info**:
    - OS: [e.g. macOS 14]
-   - Go 版本: [e.g. 1.25]
-   - Bun 版本: [e.g. 1.3.11]
-6. **截图**: 如适用
-7. **日志**: 相关错误日志
+   - Go version: [e.g. 1.25]
+   - Bun version: [e.g. 1.3.11]
+6. **Screenshots**: If applicable
+7. **Logs**: Relevant error logs
 
-### 功能请求
+### Feature Requests
 
-请包含：
+Include:
 
-1. **功能描述**: 想要什么功能
-2. **使用场景**: 为什么需要这个功能
-3. **实现建议**: 可选的实现思路
-4. **替代方案**: 考虑过的其他方案
+1. **Feature Description**: What you want
+2. **Use Case**: Why you need this
+3. **Implementation Suggestions**: Optional implementation ideas
+4. **Alternatives**: Other solutions considered
 
-## 文档
+## Documentation
 
-### 更新文档
+### Updating Documentation
 
-- API 变更需更新 Swagger 文档
-- 新功能需更新 README.md
-- 配置变更需更新环境变量说明
-- 架构变更需更新架构图
+- API changes need Swagger doc updates
+- New features need README.md updates
+- Config changes need environment variable documentation
+- Architecture changes need architecture diagram updates
 
-### 生成 Swagger 文档
+### Generate Swagger Docs
 
 ```bash
 make swagger
 ```
 
-访问：http://localhost:8000/swagger/index.html
+Visit: http://localhost:8000/swagger/index.html
 
-## 获取帮助
+## Getting Help
 
-- 查看 [README.md](./README.md) 了解项目概况
-- 查看 [AGENTS.md](./AGENTS.md) 了解开发规范
-- 在 Issue 中提问
-- 查看 existing Issues 和 PRs
+- See [README.md](./README.md) for project overview
+- See [AGENTS.md](./AGENTS.md) for development standards
+- Ask questions in Issues
+- Check existing Issues and PRs
 
-## 许可证
+## License
 
-本项目采用 MIT 许可证。贡献的代码将采用相同许可证。
+This project uses MIT license. Contributed code will use the same license.

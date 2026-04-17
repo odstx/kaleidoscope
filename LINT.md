@@ -1,5 +1,7 @@
-不要使用硬编码
-不要使用明文密钥
-不要把env提交到远程仓库
-不要把密钥提交到远程仓库
-除了翻译和markdown之外不要使用中文
+# Linting Rules
+
+- No hardcoded values
+- No plaintext secrets
+- Do not commit env files to remote
+- Do not commit keys to remote
+- Use English except for translations and markdown

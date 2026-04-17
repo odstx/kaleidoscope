@@ -1,128 +1,128 @@
-# 安装部署指南
+# Installation & Deployment Guide
 
-## 环境要求
+## Requirements
 
 - Go 1.25+
 - Bun 1.0+
 - PostgreSQL 14+
 - Redis 6+
 
-## 本地开发
+## Local Development
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 cd backend && go mod download
 cd frontend && bun install
 ```
 
-### 启动开发服务器
+### Start Development Server
 
 ```bash
 make dev
 ```
 
-或分别启动：
+Or start separately:
 
 ```bash
 make backend  # http://localhost:8000
 make frontend # http://localhost:8001
 ```
 
-## 生产部署
+## Production Deployment
 
-### 首次配置
+### Initial Setup
 
-1. 复制配置模板：
+1. Copy config template:
 
 ```bash
 cp deploy/.env.example deploy/.env
 ```
 
-2. 编辑 `deploy/.env`：
+2. Edit `deploy/.env`:
 
-| 变量 | 必填 | 默认值 | 说明 |
-|------|------|--------|------|
-| `DEPLOY_HOST` | 是 | - | SSH 服务器地址 |
-| `DEPLOY_PORT` | 否 | 22 | SSH 端口 |
-| `DEPLOY_USER` | 是 | - | SSH 用户名 |
-| `DEPLOY_KEY_PATH` | 否 | ~/.ssh/id_rsa | SSH 私钥路径 |
-| `DEPLOY_REMOTE_PATH` | 是 | - | 远程部署目录 |
-| `DEPLOY_BACKUP_PATH` | 否 | {REMOTE_PATH}-backups | 备份目录 |
-| `DEPLOY_KEEP_BACKUPS` | 否 | 5 | 保留备份数量 |
-| `DEPLOY_RESTART_SERVICE` | 否 | true | 部署后重启服务 |
-| `DEPLOY_SERVICE_NAME` | 否 | kaleidoscope | Systemd 服务名 |
-| `DEPLOY_ENV` | 否 | production | 部署环境 |
-| `API_BASE_URL` | 否 | - | 前端 API 地址 |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DEPLOY_HOST` | Yes | - | SSH server address |
+| `DEPLOY_PORT` | No | 22 | SSH port |
+| `DEPLOY_USER` | Yes | - | SSH username |
+| `DEPLOY_KEY_PATH` | No | ~/.ssh/id_rsa | SSH private key path |
+| `DEPLOY_REMOTE_PATH` | Yes | - | Remote deployment directory |
+| `DEPLOY_BACKUP_PATH` | No | {REMOTE_PATH}-backups | Backup directory |
+| `DEPLOY_KEEP_BACKUPS` | No | 5 | Number of backups to keep |
+| `DEPLOY_RESTART_SERVICE` | No | true | Restart service after deploy |
+| `DEPLOY_SERVICE_NAME` | No | kaleidoscope | Systemd service name |
+| `DEPLOY_ENV` | No | production | Deployment environment |
+| `API_BASE_URL` | No | - | Frontend API base URL |
 
-### SSH 密钥配置
+### SSH Key Setup
 
 ```bash
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/kaleidoscope_deploy
 ssh-copy-id -i ~/.ssh/kaleidoscope_deploy.pub user@server.com
 ```
 
-更新 `deploy/.env`：
+Update `deploy/.env`:
 
 ```bash
 DEPLOY_KEY_PATH=~/.ssh/kaleidoscope_deploy
 ```
 
-### 部署
+### Deploy
 
 ```bash
 make deploy
 ```
 
-部署流程：
+Deployment flow:
 
-1. 检测远程服务器 OS 和架构
-2. 交叉编译构建项目（backend + frontend）
-3. 打包成 tar.gz
-4. 上传并解压到服务器
-5. 创建 systemd 服务并启动
+1. Detect remote server OS and architecture
+2. Cross-compile project (backend + frontend)
+3. Package as tar.gz
+4. Upload and extract to server
+5. Create and start systemd service
 
-生产环境下，后端自动托管前端静态文件（`./frontend` 目录）。
+In production, the backend automatically serves frontend static files (from `./frontend` directory).
 
-查看服务状态：
+Check service status:
 
 ```bash
 ssh user@server.com "systemctl status kaleidoscope"
 ```
 
-### 回滚
+### Rollback
 
 ```bash
 ssh user@server.com
 cd /var/www/kaleidoscope-backups
-ls -lt                                    # 查看备份列表
+ls -lt                                    # List backups
 rm -rf /var/www/kaleidoscope/*
 cp -r backup-YYYYMMDD-HHMMSS/* /var/www/kaleidoscope/
 systemctl restart kaleidoscope
 ```
 
-## 常用命令
+## Common Commands
 
-### 前端
+### Frontend
 
 ```bash
-bun run dev          # 开发服务器
-bun run build        # 生产构建
-bun run test         # 单元测试
-bun run test:e2e     # E2E 测试
+bun run dev          # Development server
+bun run build        # Production build
+bun run test         # Unit tests
+bun run test:e2e     # E2E tests
 ```
 
-### 后端
+### Backend
 
 ```bash
-go test ./...        # 运行测试
-make swagger         # 生成 Swagger 文档
+go test ./...        # Run tests
+make swagger         # Generate Swagger docs
 ```
 
-### 构建
+### Build
 
 ```bash
-make build           # 构建到 build/ 目录
-make build-backend   # 仅构建后端
-make macos           # 构建 macOS 应用
+make build           # Build to build/ directory
+make build-backend   # Build backend only
+make macos           # Build macOS app
 ```
