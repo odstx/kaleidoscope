@@ -14,12 +14,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { fetchEnableRegistration } from "@/utils/oidc"
 
 const APP_NAME = import.meta.env.VITE_APP_NAME || "Kaleidoscope"
 
 export default function RegisterPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
@@ -61,6 +63,16 @@ export default function RegisterPage() {
 
     return () => clearInterval(timer)
   }, [showSuccessDialog])
+
+  useEffect(() => {
+    fetchEnableRegistration().then((enabled) => {
+      if (!enabled) {
+        navigate("/login")
+      }
+    }).catch(() => {
+      navigate("/login")
+    })
+  }, [navigate])
 
   const onSubmit = async (data: RegisterFormValues) => {
     setLoading(true)

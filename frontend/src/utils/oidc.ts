@@ -11,10 +11,12 @@ export interface FrontendConfig {
   oidcIssuerUrl: string
   oidcRedirectUri: string
   agentEnabled: boolean
+  enableRegistration: boolean
 }
 
 let cachedConfig: OidcConfig | null = null
 let cachedAgentEnabled: boolean | null = null
+let cachedEnableRegistration: boolean | null = null
 
 export async function fetchFrontendConfig(): Promise<OidcConfig> {
   if (cachedConfig) {
@@ -35,6 +37,7 @@ export async function fetchFrontendConfig(): Promise<OidcConfig> {
       redirectUri: data.oidcRedirectUri || '',
     }
     cachedAgentEnabled = data.agentEnabled ?? true
+    cachedEnableRegistration = data.enableRegistration ?? true
     return cachedConfig
   } catch {
     cachedConfig = {
@@ -44,6 +47,7 @@ export async function fetchFrontendConfig(): Promise<OidcConfig> {
       redirectUri: '',
     }
     cachedAgentEnabled = true
+    cachedEnableRegistration = true
     return cachedConfig
   }
 }
@@ -54,6 +58,14 @@ export async function fetchAgentEnabled(): Promise<boolean> {
   }
   await fetchFrontendConfig()
   return cachedAgentEnabled ?? true
+}
+
+export async function fetchEnableRegistration(): Promise<boolean> {
+  if (cachedEnableRegistration !== null) {
+    return cachedEnableRegistration
+  }
+  await fetchFrontendConfig()
+  return cachedEnableRegistration ?? true
 }
 
 
