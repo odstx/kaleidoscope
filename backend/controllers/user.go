@@ -3,7 +3,9 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"net/http"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -81,6 +83,12 @@ func (uc *UserController) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		uc.logger.Error("Invalid registration request", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if err := validatePassword(req.Password); err != nil {
+		uc.logger.Error("Password validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -459,6 +467,12 @@ func (uc *UserController) ResetPassword(c *gin.Context) {
 		return
 	}
 
+	if err := validatePassword(req.Password); err != nil {
+		uc.logger.Error("Password validation failed", zap.Error(err))
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	if err := uc.userService.ResetPassword(req.Token, req.Password); err != nil {
 		uc.logger.Error("Reset password failed", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -568,4 +582,27 @@ func generateState() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+var (
+	passwordUppercase = regexp.MustCompile(`[A-Z]`)
+	passwordLowercase = regexp.MustCompile(`[a-z]`)
+	passwordDigit     = regexp.MustCompile(`[0-9]`)
+	passwordSpecial   = regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`)
+)
+
+func validatePassword(password string) error {
+	if !passwordUppercase.MatchString(password) {
+		return errors.New("password must contain at least one uppercase letter")
+	}
+	if !passwordLowercase.MatchString(password) {
+		return errors.New("password must contain at least one lowercase letter")
+	}
+	if !passwordDigit.MatchString(password) {
+		return errors.New("password must contain at least one digit")
+	}
+	if !passwordSpecial.MatchString(password) {
+		return errors.New("password must contain at least one special character")
+	}
+	return nil
 }
