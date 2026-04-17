@@ -1,45 +1,47 @@
-# 技术栈
+# Tech Stack
 
-## 后端 (Go 1.25)
+## Backend (Go 1.25)
 
-- **框架**: Gin
+- **Framework**: Gin
 - **ORM**: GORM
-- **数据库**: PostgreSQL
-- **缓存**: Redis
-- **架构**: 分层架构（Controllers、Services、Models、Middleware）
-- **认证**: JWT
-- **限流**: Rate Limiting
-- **可观测性**: OpenTelemetry
-- **日志**: Zap
-- **文档**: Swagger
+- **Database**: PostgreSQL
+- **Cache**: Redis
+- **Service Discovery**: etcd
+- **Message Queue**: Asynq
+- **Architecture**: Layered architecture (Controllers, Services, Models, Middleware)
+- **Authentication**: JWT
+- **Rate Limiting**: Rate Limiting
+- **Observability**: OpenTelemetry
+- **Logging**: Zap
+- **Documentation**: Swagger
 
-## 前端 (React 19 + Vite 8)
+## Frontend (React 19 + Vite 8)
 
-- **语言**: TypeScript (strict 模式)
-- **样式**: TailwindCSS 4
-- **组件库**: shadcn/ui
-- **国际化**: i18next
-- **表单**: react-hook-form + zod
-- **路由**: React Router v7
+- **Language**: TypeScript (strict mode)
+- **Styling**: TailwindCSS 4
+- **Component Library**: shadcn/ui
+- **i18n**: i18next
+- **Forms**: react-hook-form + zod
+- **Routing**: React Router v7
 
-## 前端 (SwiftUI)
+## Frontend (SwiftUI)
 
-- **平台**: macOS / iOS
-- **架构**: MVVM
-- **国际化**: 多语言支持
-- **网络**: 完整 API 集成
+- **Platform**: macOS / iOS
+- **Architecture**: MVVM
+- **i18n**: Multi-language support
+- **Networking**: Full API integration
 
-## 前端 (Kotlin + Compose)
+## Frontend (Kotlin + Compose)
 
-- **平台**: Android
+- **Platform**: Android
 - **UI**: Jetpack Compose
-- **依赖注入**: Hilt
-- **网络**: Retrofit + OkHttp
-- **本地存储**: DataStore
-- **架构**: MVVM
+- **DI**: Hilt
+- **Networking**: Retrofit + OkHttp
+- **Local Storage**: DataStore
+- **Architecture**: MVVM
 
-## 测试
+## Testing
 
-- **单元测试**: Vitest + React Testing Library
-- **E2E 测试**: Playwright
-- **Mock**: MSW
+- **Unit Testing**: Vitest + React Testing Library
+- **E2E Testing**: Playwright
+- **Mocking**: MSW
