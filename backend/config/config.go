@@ -14,6 +14,7 @@ type Config struct {
 	Server       ServerConfig       `mapstructure:"server"`
 	Database     DatabaseConfig     `mapstructure:"database"`
 	Redis        RedisConfig        `mapstructure:"redis"`
+	Etcd         EtcdConfig         `mapstructure:"etcd"`
 	Log          LogConfig          `mapstructure:"log"`
 	CORS         CORSConfig         `mapstructure:"cors"`
 	RateLimit    RateLimitConfig    `mapstructure:"rate_limit"`
@@ -52,6 +53,13 @@ type RedisConfig struct {
 	MaxRetryAttempts     int    `mapstructure:"max_retry_attempts"`
 	RetryIntervalSeconds int    `mapstructure:"retry_interval_seconds"`
 	ConnectionTimeout    int    `mapstructure:"connection_timeout"`
+}
+
+type EtcdConfig struct {
+	Endpoints   []string `mapstructure:"endpoints"`
+	Username    string   `mapstructure:"username"`
+	Password    string   `mapstructure:"password"`
+	DialTimeout int      `mapstructure:"dial_timeout"`
 }
 
 type LogConfig struct {
@@ -239,6 +247,10 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("redis.max_retry_attempts", 5)
 	viper.SetDefault("redis.retry_interval_seconds", 5)
 	viper.SetDefault("redis.connection_timeout", 5)
+	viper.SetDefault("etcd.endpoints", []string{"localhost:2379"})
+	viper.SetDefault("etcd.username", "")
+	viper.SetDefault("etcd.password", "")
+	viper.SetDefault("etcd.dial_timeout", 5)
 	viper.SetDefault("log.enable_console", true)
 	viper.SetDefault("log.enable_file", true)
 	viper.SetDefault("log.file_path", "logs/app.log")
@@ -248,7 +260,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("log.compress", true)
 	viper.SetDefault("cors.allow_origins", []string{"*"})
 	viper.SetDefault("cors.allow_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	viper.SetDefault("cors.allow_headers", []string{"Origin", "Content-Type", "Accept", "Authorization"})
+	viper.SetDefault("cors.allow_headers", []string{"*"})
 	viper.SetDefault("cors.allow_credentials", true)
 	viper.SetDefault("rate_limit.enabled", true)
 	viper.SetDefault("rate_limit.requests_per_minute", 60)

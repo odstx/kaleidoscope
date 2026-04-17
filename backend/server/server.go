@@ -22,6 +22,7 @@ import (
 	"kaleidoscope/config"
 	"kaleidoscope/controllers"
 	"kaleidoscope/database"
+	"kaleidoscope/etcd"
 	"kaleidoscope/middleware"
 	"kaleidoscope/models"
 	"kaleidoscope/services"
@@ -61,6 +62,19 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 
 	logger.Info("Database migrations completed successfully")
 
+	var etcdClient *etcd.Client
+	if config.Microservice.Enabled {
+		etcdClient, err = etcd.New(&etcd.Config{
+			Endpoints: config.Etcd.Endpoints,
+		}, logger)
+		if err != nil {
+			logger.Fatal("Failed to initialize etcd client", zap.Error(err))
+		}
+		if _, err := etcdClient.ListServices(context.Background()); err != nil {
+			logger.Warn("Failed to load initial services from etcd", zap.Error(err))
+		}
+	}
+
 	// Create Asynq client for task enqueuing
 	asynqClient := worker.NewClient(
 		fmt.Sprintf("%s:%s", config.Redis.Host, config.Redis.Port),
@@ -84,19 +98,18 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	router.Use(middleware.Logger(logger))
 	router.Use(gin.Recovery())
 	router.Use(middleware.PrometheusMetrics())
-	router.Use(middleware.MicroserviceProxy(config, db.DB))
-
-	if config.OTEL.Enabled {
-		router.Use(otelgin.Middleware(config.OTEL.ServiceName))
-		logger.Info("OpenTelemetry Gin middleware enabled")
-	}
-
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     config.CORS.AllowOrigins,
 		AllowMethods:     config.CORS.AllowMethods,
 		AllowHeaders:     config.CORS.AllowHeaders,
 		AllowCredentials: config.CORS.AllowCredentials,
 	}))
+	router.Use(middleware.MicroserviceProxy(config, db.DB, etcdClient))
+
+	if config.OTEL.Enabled {
+		router.Use(otelgin.Middleware(config.OTEL.ServiceName))
+		logger.Info("OpenTelemetry Gin middleware enabled")
+	}
 
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
