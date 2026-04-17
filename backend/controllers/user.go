@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -52,19 +53,22 @@ type ResetPasswordRequest struct {
 
 // UserController handles user-related operations
 type UserController struct {
-	logger             *zap.Logger
-	userService        *services.UserService
-	oidcService        *services.OIDCService
-	enableRegistration bool
+	logger              *zap.Logger
+	userService         *services.UserService
+	oidcService         *services.OIDCService
+	enableRegistration  bool
+	maxLoginAttempts    int
+	lockoutDurationMins int
 }
 
-// NewUserController creates a new UserController instance
-func NewUserController(logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, enableRegistration bool) *UserController {
+func NewUserController(logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, enableRegistration bool, maxLoginAttempts, lockoutDurationMins int) *UserController {
 	return &UserController{
-		logger:             logger,
-		userService:        userService,
-		oidcService:        oidcService,
-		enableRegistration: enableRegistration,
+		logger:              logger,
+		userService:         userService,
+		oidcService:         oidcService,
+		enableRegistration:  enableRegistration,
+		maxLoginAttempts:    maxLoginAttempts,
+		lockoutDurationMins: lockoutDurationMins,
 	}
 }
 
@@ -132,9 +136,13 @@ func (uc *UserController) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := uc.userService.LoginWithTOTP(req.Email, req.Password, req.TOTPCode)
+	user, err := uc.userService.LoginWithTOTP(req.Email, req.Password, req.TOTPCode, uc.maxLoginAttempts, uc.lockoutDurationMins)
 	if err != nil {
 		uc.logger.Error("Login failed", zap.Error(err))
+		if strings.Contains(err.Error(), "locked until") {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+			return
+		}
 		if err.Error() == "TOTP code required" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "TOTP code required", "totp_required": true})
 			return
@@ -597,9 +605,16 @@ var (
 	passwordLowercase = regexp.MustCompile(`[a-z]`)
 	passwordDigit     = regexp.MustCompile(`[0-9]`)
 	passwordSpecial   = regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`)
+	weakPasswords     = []string{
+		"password", "12345678", "qwerty", "abc123", "password123",
+		"letmein", "welcome", "admin", "login", "master",
+	}
 )
 
 func validatePassword(password string) error {
+	if len(password) > 128 {
+		return errors.New("password must be less than 128 characters")
+	}
 	if !passwordUppercase.MatchString(password) {
 		return errors.New("password must contain at least one uppercase letter")
 	}
@@ -611,6 +626,12 @@ func validatePassword(password string) error {
 	}
 	if !passwordSpecial.MatchString(password) {
 		return errors.New("password must contain at least one special character")
+	}
+	lower := strings.ToLower(password)
+	for _, weak := range weakPasswords {
+		if strings.Contains(lower, weak) {
+			return errors.New("password is too weak (common password detected)")
+		}
 	}
 	return nil
 }

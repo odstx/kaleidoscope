@@ -3,12 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"gopkg.in/yaml.v3"
 )
 
 // Config holds all configuration for our application
@@ -20,199 +17,87 @@ type Config struct {
 	Log                LogConfig          `mapstructure:"log"`
 	CORS               CORSConfig         `mapstructure:"cors"`
 	RateLimit          RateLimitConfig    `mapstructure:"rate_limit"`
+	Security           SecurityConfig     `mapstructure:"security"`
 	OTEL               OTELConfig         `mapstructure:"otel"`
 	Hawk               HawkConfig         `mapstructure:"hawk"`
 	Email              EmailConfig        `mapstructure:"email"`
 	OIDC               OIDCConfig         `mapstructure:"oidc"`
 	Microservice       MicroserviceConfig `mapstructure:"microservice"`
 	LLM                LLMConfig          `mapstructure:"llm"`
+	JWT                JWTConfig          `mapstructure:"jwt"`
 	AgentEnabled       bool               `mapstructure:"agent_enabled"`
 	EnableRegistration bool               `mapstructure:"enable_registration"`
 }
 
-type ServerConfig struct {
-	Host            string `mapstructure:"host"`
-	Port            string `mapstructure:"port"`
-	Environment     string `mapstructure:"environment"`
-	StaticFilesPath string `mapstructure:"static_files_path"`
-}
-
-type DatabaseConfig struct {
-	Host                 string `mapstructure:"host"`
-	Port                 string `mapstructure:"port"`
-	User                 string `mapstructure:"user"`
-	Password             string `mapstructure:"password"`
-	Name                 string `mapstructure:"name"`
-	SSLMode              string `mapstructure:"sslmode"`
-	MaxRetryAttempts     int    `mapstructure:"max_retry_attempts"`
-	RetryIntervalSeconds int    `mapstructure:"retry_interval_seconds"`
-	ConnectionTimeout    int    `mapstructure:"connection_timeout"`
-}
-
-type RedisConfig struct {
-	Host                 string `mapstructure:"host"`
-	Port                 string `mapstructure:"port"`
-	Password             string `mapstructure:"password"`
-	DB                   int    `mapstructure:"db"`
-	MaxRetryAttempts     int    `mapstructure:"max_retry_attempts"`
-	RetryIntervalSeconds int    `mapstructure:"retry_interval_seconds"`
-	ConnectionTimeout    int    `mapstructure:"connection_timeout"`
-}
-
-type EtcdConfig struct {
-	Endpoints   []string `mapstructure:"endpoints"`
-	Username    string   `mapstructure:"username"`
-	Password    string   `mapstructure:"password"`
-	DialTimeout int      `mapstructure:"dial_timeout"`
-}
-
-type LogConfig struct {
-	EnableConsole bool   `mapstructure:"enable_console"`
-	EnableFile    bool   `mapstructure:"enable_file"`
-	FilePath      string `mapstructure:"file_path"`
-	MaxSize       int    `mapstructure:"max_size"`
-	MaxBackups    int    `mapstructure:"max_backups"`
-	MaxAge        int    `mapstructure:"max_age"`
-	Compress      bool   `mapstructure:"compress"`
-}
-
-type CORSConfig struct {
-	AllowOrigins     []string `mapstructure:"allow_origins"`
-	AllowMethods     []string `mapstructure:"allow_methods"`
-	AllowHeaders     []string `mapstructure:"allow_headers"`
-	AllowCredentials bool     `mapstructure:"allow_credentials"`
-}
-
-type RateLimitConfig struct {
-	Enabled           bool `mapstructure:"enabled"`
-	RequestsPerMinute int  `mapstructure:"requests_per_minute"`
-}
-
-type OTELConfig struct {
-	Enabled           bool               `mapstructure:"enabled"`
-	ServiceName       string             `mapstructure:"service_name"`
-	CollectorURL      string             `mapstructure:"collector_url"`
-	TracesExporter    string             `mapstructure:"traces_exporter"`
-	MetricsExporter   string             `mapstructure:"metrics_exporter"`
-	LogsExporter      string             `mapstructure:"logs_exporter"`
-	SamplingRate      float64            `mapstructure:"sampling_rate"`
-	PropagationFormat string             `mapstructure:"propagation_format"`
-	Headers           []OTELHeaderConfig `mapstructure:"headers"`
-}
-
-type OTELHeaderConfig struct {
-	Name  string `mapstructure:"name"`
-	Value string `mapstructure:"value"`
-}
-
-type HawkConfig struct {
-	Enabled           bool `mapstructure:"enabled"`
-	TimestampSkewSecs int  `mapstructure:"timestamp_skew_secs"`
-}
-
-type EmailConfig struct {
-	Host        string `mapstructure:"host"`
-	Port        int    `mapstructure:"port"`
-	Username    string `mapstructure:"username"`
-	Password    string `mapstructure:"password"`
-	From        string `mapstructure:"from"`
-	UseTLS      bool   `mapstructure:"use_tls"`
-	FrontendURL string `mapstructure:"frontend_url"`
-}
-
-type OIDCConfig struct {
-	Enabled      bool     `mapstructure:"enabled"`
-	IssuerURL    string   `mapstructure:"issuer_url"`
-	ClientID     string   `mapstructure:"client_id"`
-	ClientSecret string   `mapstructure:"client_secret"`
-	RedirectURI  string   `mapstructure:"redirect_uri"`
-	Scopes       []string `mapstructure:"scopes"`
-}
-
-type MicroserviceConfig struct {
-	Enabled       bool   `mapstructure:"enabled"`
-	Host          string `mapstructure:"host"`
-	Port          string `mapstructure:"port"`
-	ServiceDomain string `mapstructure:"service_domain"`
-}
-
-type LLMConfig struct {
-	URL          string `mapstructure:"url"`
-	APIKey       string `mapstructure:"api_key"`
-	Model        string `mapstructure:"model"`
-	SystemPrompt string `mapstructure:"system_prompt"`
-}
-
 func generateDefaultConfig(path string) error {
-	config := `server:
-  host: ""
-  port: "9000"
-  environment: "development"
+	defaultConfig := Config{
+		Server: ServerConfig{
+			Host:        "",
+			Port:        "9000",
+			Environment: "development",
+		},
+		Database: DatabaseConfig{
+			Host:     "localhost",
+			Port:     "5432",
+			User:     "postgres",
+			Password: "postgres",
+			Name:     "kaleidoscope",
+			SSLMode:  "disable",
+		},
+		Redis: RedisConfig{
+			Host: "localhost",
+			Port: "6379",
+		},
+		Log: LogConfig{
+			EnableConsole: true,
+			EnableFile:    true,
+			FilePath:      "logs/app.log",
+			MaxSize:       100,
+			MaxBackups:    3,
+			MaxAge:        30,
+			Compress:      true,
+		},
+		CORS: CORSConfig{
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-User-UID", "X-User-Name", "X-Version", "X-Source"},
+			AllowCredentials: true,
+		},
+		RateLimit: RateLimitConfig{
+			Enabled:           true,
+			RequestsPerMinute: 60,
+		},
+		Security: SecurityConfig{
+			MaxLoginAttempts:    5,
+			LockoutDurationMins: 15,
+		},
+		OTEL: OTELConfig{
+			Enabled:           false,
+			ServiceName:       "kaleidoscope",
+			CollectorURL:      "http://localhost:4318",
+			TracesExporter:    "otlp",
+			MetricsExporter:   "otlp",
+			LogsExporter:      "otlp",
+			SamplingRate:      1.0,
+			PropagationFormat: "w3c",
+		},
+		Email: EmailConfig{
+			Host:        "smtp.gmail.com",
+			Port:        587,
+			Username:    "",
+			Password:    "",
+			From:        "",
+			UseTLS:      true,
+			FrontendURL: "http://localhost:5173",
+		},
+	}
 
-database:
-  host: "localhost"
-  port: "5432"
-  user: "postgres"
-  password: "postgres"
-  name: "kaleidoscope"
-  sslmode: "disable"
+	data, err := yaml.Marshal(&defaultConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
 
-redis:
-  host: "localhost"
-  port: "6379"
-  password: ""
-  db: 0
-
-log:
-  enable_console: true
-  enable_file: true
-  file_path: "logs/app.log"
-  max_size: 100
-  max_backups: 3
-  max_age: 30
-  compress: true
-
-cors:
-  allow_origins:
-    - "*"
-  allow_methods:
-    - "GET"
-    - "POST"
-    - "PUT"
-    - "DELETE"
-    - "OPTIONS"
-  allow_headers:
-    - "Origin"
-    - "Content-Type"
-    - "Accept"
-    - "Authorization"
-  allow_credentials: true
-
-rate_limit:
-  enabled: true
-  requests_per_minute: 60
-
-otel:
-  enabled: false
-  service_name: "kaleidoscope"
-  collector_url: "http://localhost:4318"
-  traces_exporter: "otlp"
-  metrics_exporter: "otlp"
-  logs_exporter: "otlp"
-  sampling_rate: 1.0
-  propagation_format: "w3c"
-  headers: []
-
-email:
-  host: "smtp.gmail.com"
-  port: 587
-  username: ""
-  password: ""
-  from: ""
-  use_tls: true
-  frontend_url: "http://localhost:5173"
-`
-	if err := os.WriteFile(path, []byte(config), 0644); err != nil {
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write default config: %w", err)
 	}
 	fmt.Printf("Generated default config at: %s\n", path)
@@ -268,6 +153,8 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("cors.allow_credentials", true)
 	viper.SetDefault("rate_limit.enabled", true)
 	viper.SetDefault("rate_limit.requests_per_minute", 60)
+	viper.SetDefault("security.max_login_attempts", 5)
+	viper.SetDefault("security.lockout_duration_mins", 15)
 	viper.SetDefault("otel.enabled", false)
 	viper.SetDefault("otel.service_name", "kaleidoscope")
 	viper.SetDefault("otel.collector_url", "http://localhost:4318")
@@ -294,6 +181,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("microservice.service_domain", "service")
 	viper.SetDefault("agent_enabled", true)
 	viper.SetDefault("enable_registration", true)
+	viper.SetDefault("jwt.secret", "your-secret-key-change-in-production")
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {
@@ -322,60 +210,9 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("unable to decode config into struct: %w", err)
 	}
 
+	if config.JWT.Secret == "your-secret-key-change-in-production" {
+		return nil, fmt.Errorf("jwt.secret must be changed from default value in production")
+	}
+
 	return &config, nil
-}
-
-// InitLogger initializes the zap logger
-func InitLogger(cfg *Config) (*zap.Logger, error) {
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		FunctionKey:    zapcore.OmitKey,
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-	}
-
-	var cores []zapcore.Core
-
-	if cfg.Log.EnableConsole {
-		consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
-		consoleWriter := zapcore.AddSync(os.Stdout)
-		cores = append(cores, zapcore.NewCore(consoleEncoder, consoleWriter, zapcore.DebugLevel))
-	}
-
-	if cfg.Log.EnableFile {
-		dir := filepath.Dir(cfg.Log.FilePath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create log directory: %w", err)
-		}
-
-		fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
-
-		lumberjackLogger := &lumberjack.Logger{
-			Filename:   cfg.Log.FilePath,
-			MaxSize:    cfg.Log.MaxSize,
-			MaxBackups: cfg.Log.MaxBackups,
-			MaxAge:     cfg.Log.MaxAge,
-			Compress:   cfg.Log.Compress,
-		}
-
-		fileWriter := zapcore.AddSync(lumberjackLogger)
-		cores = append(cores, zapcore.NewCore(fileEncoder, fileWriter, zapcore.InfoLevel))
-	}
-
-	if len(cores) == 0 {
-		return zap.NewNop(), nil
-	}
-
-	core := zapcore.NewTee(cores...)
-	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
-
-	return logger, nil
 }

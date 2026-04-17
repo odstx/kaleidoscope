@@ -20,6 +20,8 @@ type User struct {
 	ResetTokenExpiresAt int64  `gorm:"default:0" json:"-"`
 	OIDCProvider        string `gorm:"default:''" json:"oidc_provider"`
 	OIDCSubject         string `gorm:"default:''" json:"oidc_subject"`
+	FailedLoginAttempts int    `gorm:"default:0" json:"-"`
+	LockoutUntil        int64  `gorm:"default:0" json:"-"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
