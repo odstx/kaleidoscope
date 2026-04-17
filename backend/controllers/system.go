@@ -34,11 +34,12 @@ func (sc *SystemController) GetSystemInfo(c *gin.Context) {
 }
 
 type FrontendConfig struct {
-	OIDCID          string `json:"oidcClientId"`
-	OIDCEnabled     bool   `json:"oidcEnabled"`
-	OIDCIssuerURL   string `json:"oidcIssuerUrl"`
-	OIDCRedirectURI string `json:"oidcRedirectUri"`
-	AgentEnabled    bool   `json:"agentEnabled"`
+	OIDCID             string `json:"oidcClientId"`
+	OIDCEnabled        bool   `json:"oidcEnabled"`
+	OIDCIssuerURL      string `json:"oidcIssuerUrl"`
+	OIDCRedirectURI    string `json:"oidcRedirectUri"`
+	AgentEnabled       bool   `json:"agentEnabled"`
+	EnableRegistration bool   `json:"enableRegistration"`
 }
 
 // GetConfig godoc
@@ -50,11 +51,12 @@ type FrontendConfig struct {
 // @Router /system/config [get]
 func (sc *SystemController) GetConfig(c *gin.Context) {
 	cfg := FrontendConfig{
-		OIDCID:          sc.cfg.OIDC.ClientID,
-		OIDCEnabled:     sc.cfg.OIDC.Enabled,
-		OIDCIssuerURL:   sc.cfg.OIDC.IssuerURL,
-		OIDCRedirectURI: sc.cfg.OIDC.RedirectURI,
-		AgentEnabled:    sc.cfg.AgentEnabled,
+		OIDCID:             sc.cfg.OIDC.ClientID,
+		OIDCEnabled:        sc.cfg.OIDC.Enabled,
+		OIDCIssuerURL:      sc.cfg.OIDC.IssuerURL,
+		OIDCRedirectURI:    sc.cfg.OIDC.RedirectURI,
+		AgentEnabled:       sc.cfg.AgentEnabled,
+		EnableRegistration: sc.cfg.EnableRegistration,
 	}
 	c.JSON(http.StatusOK, cfg)
 }

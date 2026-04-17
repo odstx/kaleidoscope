@@ -13,20 +13,21 @@ import (
 
 // Config holds all configuration for our application
 type Config struct {
-	Server       ServerConfig       `mapstructure:"server"`
-	Database     DatabaseConfig     `mapstructure:"database"`
-	Redis        RedisConfig        `mapstructure:"redis"`
-	Etcd         EtcdConfig         `mapstructure:"etcd"`
-	Log          LogConfig          `mapstructure:"log"`
-	CORS         CORSConfig         `mapstructure:"cors"`
-	RateLimit    RateLimitConfig    `mapstructure:"rate_limit"`
-	OTEL         OTELConfig         `mapstructure:"otel"`
-	Hawk         HawkConfig         `mapstructure:"hawk"`
-	Email        EmailConfig        `mapstructure:"email"`
-	OIDC         OIDCConfig         `mapstructure:"oidc"`
-	Microservice MicroserviceConfig `mapstructure:"microservice"`
-	LLM          LLMConfig          `mapstructure:"llm"`
-	AgentEnabled bool               `mapstructure:"agent_enabled"`
+	Server             ServerConfig       `mapstructure:"server"`
+	Database           DatabaseConfig     `mapstructure:"database"`
+	Redis              RedisConfig        `mapstructure:"redis"`
+	Etcd               EtcdConfig         `mapstructure:"etcd"`
+	Log                LogConfig          `mapstructure:"log"`
+	CORS               CORSConfig         `mapstructure:"cors"`
+	RateLimit          RateLimitConfig    `mapstructure:"rate_limit"`
+	OTEL               OTELConfig         `mapstructure:"otel"`
+	Hawk               HawkConfig         `mapstructure:"hawk"`
+	Email              EmailConfig        `mapstructure:"email"`
+	OIDC               OIDCConfig         `mapstructure:"oidc"`
+	Microservice       MicroserviceConfig `mapstructure:"microservice"`
+	LLM                LLMConfig          `mapstructure:"llm"`
+	AgentEnabled       bool               `mapstructure:"agent_enabled"`
+	EnableRegistration bool               `mapstructure:"enable_registration"`
 }
 
 type ServerConfig struct {
@@ -292,6 +293,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("microservice.enabled", false)
 	viper.SetDefault("microservice.service_domain", "service")
 	viper.SetDefault("agent_enabled", true)
+	viper.SetDefault("enable_registration", true)
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
-import { fetchFrontendConfig, getOidcAuthUrl } from "@/utils/oidc"
+import { fetchFrontendConfig, fetchEnableRegistration, getOidcAuthUrl } from "@/utils/oidc"
 
 const APP_NAME = import.meta.env.VITE_APP_NAME || "Kaleidoscope"
 
@@ -24,12 +24,17 @@ export default function LoginPage() {
   const [totpCode, setTotpCode] = useState("")
   const [pendingCredentials, setPendingCredentials] = useState<{ email: string; password: string } | null>(null)
   const [oidcEnabled, setOidcEnabled] = useState(false)
+  const [enableRegistration, setEnableRegistration] = useState(true)
 
   useEffect(() => {
     console.log("Fetching frontend config...")
-    fetchFrontendConfig().then((config) => {
+    Promise.all([
+      fetchFrontendConfig(),
+      fetchEnableRegistration()
+    ]).then(([config, enableReg]) => {
       console.log("Config fetched:", config)
       setOidcEnabled(Boolean(config.enabled && config.issuerUrl && config.clientId))
+      setEnableRegistration(enableReg)
     }).catch((err) => {
       console.error("Config fetch error:", err)
     })
@@ -212,11 +217,13 @@ export default function LoginPage() {
               {t('login.forgotPassword')}
             </Link>
           </div>
-          <div className="text-center w-full">
-            <Link to="/register" className="text-sm text-primary hover:underline">
-              {t('login.goToRegister')}
-            </Link>
-          </div>
+          {enableRegistration && (
+            <div className="text-center w-full">
+              <Link to="/register" className="text-sm text-primary hover:underline">
+                {t('login.goToRegister')}
+              </Link>
+            </div>
+          )}
         </CardFooter>
       </Card>
     </div>

@@ -52,17 +52,19 @@ type ResetPasswordRequest struct {
 
 // UserController handles user-related operations
 type UserController struct {
-	logger      *zap.Logger
-	userService *services.UserService
-	oidcService *services.OIDCService
+	logger             *zap.Logger
+	userService        *services.UserService
+	oidcService        *services.OIDCService
+	enableRegistration bool
 }
 
 // NewUserController creates a new UserController instance
-func NewUserController(logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService) *UserController {
+func NewUserController(logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, enableRegistration bool) *UserController {
 	return &UserController{
-		logger:      logger,
-		userService: userService,
-		oidcService: oidcService,
+		logger:             logger,
+		userService:        userService,
+		oidcService:        oidcService,
+		enableRegistration: enableRegistration,
 	}
 }
 
@@ -83,6 +85,12 @@ func (uc *UserController) Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		uc.logger.Error("Invalid registration request", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	if !uc.enableRegistration {
+		uc.logger.Warn("Registration is disabled")
+		c.JSON(http.StatusForbidden, gin.H{"error": "Registration is disabled"})
 		return
 	}
 
