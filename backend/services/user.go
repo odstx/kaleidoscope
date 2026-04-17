@@ -27,6 +27,27 @@ func (s *UserService) GetDB() *gorm.DB {
 	return s.db
 }
 
+func (s *UserService) IsLockedOut(user *models.User) (bool, int64) {
+	if user.LockoutUntil > 0 && time.Now().Unix() < user.LockoutUntil {
+		return true, user.LockoutUntil
+	}
+	return false, 0
+}
+
+func (s *UserService) RecordFailedLogin(user *models.User, maxAttempts int, lockoutMins int) error {
+	user.FailedLoginAttempts++
+	if user.FailedLoginAttempts >= maxAttempts {
+		user.LockoutUntil = time.Now().Add(time.Duration(lockoutMins) * time.Minute).Unix()
+	}
+	return s.db.Save(user).Error
+}
+
+func (s *UserService) ResetFailedLogin(user *models.User) error {
+	user.FailedLoginAttempts = 0
+	user.LockoutUntil = 0
+	return s.db.Save(user).Error
+}
+
 // Register creates a new user with the provided username, email and password
 // It validates the input, hashes the password, and persists to database
 func (s *UserService) Register(username, email, password string) (*models.User, error) {
@@ -83,7 +104,7 @@ func (s *UserService) Register(username, email, password string) (*models.User, 
 	return user, nil
 }
 
-func (s *UserService) Login(email, password string) (*models.User, error) {
+func (s *UserService) Login(email, password string, maxAttempts, lockoutMins int) (*models.User, error) {
 	if email == "" {
 		return nil, errors.New("email is required")
 	}
@@ -99,9 +120,16 @@ func (s *UserService) Login(email, password string) (*models.User, error) {
 		return nil, fmt.Errorf("database error while finding user: %w", err)
 	}
 
+	if locked, until := s.IsLockedOut(&user); locked {
+		return nil, fmt.Errorf("account is locked until %d", until)
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		_ = s.RecordFailedLogin(&user, maxAttempts, lockoutMins)
 		return nil, errors.New("invalid email or password")
 	}
+
+	_ = s.ResetFailedLogin(&user)
 
 	user.Password = ""
 	return &user, nil
@@ -201,8 +229,8 @@ func (s *UserService) GetUserByID(userID uint) (*models.User, error) {
 	return &user, nil
 }
 
-func (s *UserService) LoginWithTOTP(email, password, totpCode string) (*models.User, error) {
-	user, err := s.Login(email, password)
+func (s *UserService) LoginWithTOTP(email, password, totpCode string, maxAttempts, lockoutMins int) (*models.User, error) {
+	user, err := s.Login(email, password, maxAttempts, lockoutMins)
 	if err != nil {
 		return nil, err
 	}

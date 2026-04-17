@@ -47,7 +47,7 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 
 		var username string
 		var user models.User
-		if err := db.Where("uid = ?", uidStr).First(&user).Error; err == nil {
+		if err := db.Where("id = ?", uidStr).First(&user).Error; err == nil {
 			username = user.Username
 		}
 
@@ -58,19 +58,49 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 		}
 
 		appName := parts[0]
+		version := ""
 		targetPath := ""
 		if len(parts) > 1 {
 			targetPath = "/" + parts[1]
 		}
+		if len(parts) > 2 {
+			version = parts[1]
+			targetPath = "/" + parts[2]
+		}
 
-		endpoint, err := etcdClient.GetEndpoint(appName)
+		versionHeader := c.GetHeader("X-Version")
+		if versionHeader != "" {
+			if versionHeader == "latest" {
+				versions, err := etcdClient.ListAllServiceVersions(c.Request.Context())
+				if err == nil && len(versions[appName]) > 0 {
+					version = versions[appName][len(versions[appName])-1]
+				}
+			} else {
+				version = versionHeader
+			}
+		}
+
+		if version == "" {
+			versions, err := etcdClient.ListAllServiceVersions(c.Request.Context())
+			if err == nil && len(versions[appName]) > 0 {
+				version = versions[appName][len(versions[appName])-1]
+			}
+		}
+
+		if version == "" {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not found"})
+			c.Abort()
+			return
+		}
+
+		instance, err := etcdClient.GetHealthyInstance(c.Request.Context(), appName, version)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service unavailable"})
 			c.Abort()
 			return
 		}
 
-		targetURL := fmt.Sprintf("http://%s%s", endpoint, targetPath)
+		targetURL := fmt.Sprintf("http://%s%s", instance.Endpoint, targetPath)
 
 		target, _ := url.Parse(targetURL)
 

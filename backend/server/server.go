@@ -27,6 +27,7 @@ import (
 	"kaleidoscope/models"
 	"kaleidoscope/services"
 	"kaleidoscope/telemetry"
+	"kaleidoscope/utils"
 	"kaleidoscope/worker"
 )
 
@@ -45,6 +46,8 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	} else {
 		gin.SetMode(gin.DebugMode)
 	}
+
+	utils.InitJWTSecret(config.JWT.Secret)
 
 	tel, err := telemetry.InitTelemetry(context.Background(), config, logger)
 	if err != nil {
@@ -98,6 +101,11 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	router.Use(middleware.Logger(logger))
 	router.Use(gin.Recovery())
 	router.Use(middleware.PrometheusMetrics())
+
+	if len(config.CORS.AllowOrigins) == 1 && config.CORS.AllowOrigins[0] == "*" {
+		logger.Warn("CORS AllowOrigins is set to '*', which is insecure. Consider specifying explicit origins.")
+	}
+
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     config.CORS.AllowOrigins,
 		AllowMethods:     config.CORS.AllowMethods,

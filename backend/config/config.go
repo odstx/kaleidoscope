@@ -60,7 +60,7 @@ func generateDefaultConfig(path string) error {
 		CORS: CORSConfig{
 			AllowOrigins:     []string{"*"},
 			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-User-UID", "X-User-Name", "X-Version", "X-Source"},
 			AllowCredentials: true,
 		},
 		RateLimit: RateLimitConfig{

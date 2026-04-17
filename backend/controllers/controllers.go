@@ -14,7 +14,7 @@ import (
 )
 
 func RegisterRoutes(router *gin.Engine, logger *zap.Logger, userService *services.UserService, oidcService *services.OIDCService, appService *services.AppService, agentService *services.AgentService, rateLimiter *middleware.RateLimiter, cfg *config.Config, db *gorm.DB) {
-	userController := NewUserController(logger, userService, oidcService, cfg.EnableRegistration)
+	userController := NewUserController(logger, userService, oidcService, cfg.EnableRegistration, cfg.Security.MaxLoginAttempts, cfg.Security.LockoutDurationMins)
 	systemController := NewSystemController(logger, cfg)
 	appController := NewAppController(logger, appService)
 	agentController := NewAgentController(logger, agentService)

@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -13,12 +14,35 @@ import (
 
 const ServicePrefix = "/services/"
 
-type Client struct {
-	Client *clientv3.Client
-	Logger *zap.Logger
+type ServiceInstance struct {
+	AppName      string            `json:"app_name"`
+	Version      string            `json:"version"`
+	InstanceID   string            `json:"instance_id"`
+	Endpoint     string            `json:"endpoint"`
+	Status       string            `json:"status"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
+	RegisteredAt time.Time         `json:"registered_at"`
+}
 
-	endpoints map[string]string
-	mu        sync.RWMutex
+type ServiceInfo struct {
+	AppName   string            `json:"app_name"`
+	Version   string            `json:"version"`
+	Instances []ServiceInstance `json:"instances"`
+}
+
+type Client struct {
+	Client   *clientv3.Client
+	Logger   *zap.Logger
+	services map[string]map[string]map[string]ServiceInstance
+	mu       sync.RWMutex
+}
+
+type Registry interface {
+	RegisterService(ctx context.Context, appName, version, instanceID, endpoint string, metadata map[string]string) error
+	DeregisterService(ctx context.Context, appName, version, instanceID string) error
+	GetService(ctx context.Context, appName, version string) ([]ServiceInstance, error)
+	GetServiceInstance(ctx context.Context, appName, version, instanceID string) (*ServiceInstance, error)
+	ListServices(ctx context.Context) (map[string]ServiceInfo, error)
 }
 
 type Config struct {
@@ -57,9 +81,9 @@ func New(cfg *Config, logger *zap.Logger) (*Client, error) {
 	}
 
 	c := &Client{
-		Client:    cli,
-		Logger:    logger,
-		endpoints: make(map[string]string),
+		Client:   cli,
+		Logger:   logger,
+		services: make(map[string]map[string]map[string]ServiceInstance),
 	}
 
 	go c.watchServices(context.Background())
@@ -67,62 +91,291 @@ func New(cfg *Config, logger *zap.Logger) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) ServiceKey(appName string) string {
-	return ServicePrefix + appName
+func (c *Client) serviceKey(appName, version, instanceID string) string {
+	return fmt.Sprintf("%s%s/%s/%s", ServicePrefix, appName, version, instanceID)
 }
 
-func (c *Client) GetEndpoint(appName string) (string, error) {
+func (c *Client) versionKey(appName, version string) string {
+	return fmt.Sprintf("%s%s/%s", ServicePrefix, appName, version)
+}
+
+func (c *Client) RegisterService(ctx context.Context, appName, version, instanceID, endpoint string, metadata map[string]string) error {
+	if version == "" {
+		version = "v1"
+	}
+	if instanceID == "" {
+		instanceID = fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+
+	instance := ServiceInstance{
+		AppName:      appName,
+		Version:      version,
+		InstanceID:   instanceID,
+		Endpoint:     endpoint,
+		Status:       "healthy",
+		Metadata:     metadata,
+		RegisteredAt: time.Now(),
+	}
+
+	data, err := json.Marshal(instance)
+	if err != nil {
+		return fmt.Errorf("failed to marshal service instance: %w", err)
+	}
+
+	key := c.serviceKey(appName, version, instanceID)
+	_, err = c.Client.Put(ctx, key, string(data))
+	if err != nil {
+		return fmt.Errorf("failed to register service: %w", err)
+	}
+
+	c.mu.Lock()
+	if c.services == nil {
+		c.services = make(map[string]map[string]map[string]ServiceInstance)
+	}
+	if c.services[appName] == nil {
+		c.services[appName] = make(map[string]map[string]ServiceInstance)
+	}
+	if c.services[appName][version] == nil {
+		c.services[appName][version] = make(map[string]ServiceInstance)
+	}
+	c.services[appName][version][instanceID] = instance
+	c.mu.Unlock()
+
+	c.Logger.Info("registered service",
+		zap.String("app", appName),
+		zap.String("version", version),
+		zap.String("instance_id", instanceID),
+		zap.String("endpoint", endpoint))
+	return nil
+}
+
+func (c *Client) DeregisterService(ctx context.Context, appName, version, instanceID string) error {
+	if version == "" {
+		version = "v1"
+	}
+	if instanceID == "" {
+		return fmt.Errorf("instance_id is required")
+	}
+
+	key := c.serviceKey(appName, version, instanceID)
+	_, err := c.Client.Delete(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to deregister service: %w", err)
+	}
+
+	c.mu.Lock()
+	if c.services[appName] != nil && c.services[appName][version] != nil {
+		delete(c.services[appName][version], instanceID)
+	}
+	c.mu.Unlock()
+
+	c.Logger.Info("deregistered service",
+		zap.String("app", appName),
+		zap.String("version", version),
+		zap.String("instance_id", instanceID))
+	return nil
+}
+
+func (c *Client) GetService(ctx context.Context, appName, version string) ([]ServiceInstance, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	endpoint, ok := c.endpoints[appName]
+	if c.services == nil {
+		return nil, nil
+	}
+
+	if appName == "" {
+		var result []ServiceInstance
+		for _, versions := range c.services {
+			for _, instances := range versions {
+				for _, instance := range instances {
+					result = append(result, instance)
+				}
+			}
+		}
+		return result, nil
+	}
+
+	if version == "" {
+		var result []ServiceInstance
+		if versions, ok := c.services[appName]; ok {
+			for _, instances := range versions {
+				for _, instance := range instances {
+					result = append(result, instance)
+				}
+			}
+		}
+		return result, nil
+	}
+
+	instances, ok := c.services[appName][version]
 	if !ok {
-		return "", fmt.Errorf("service %s not found", appName)
+		return nil, nil
 	}
-	return endpoint, nil
+
+	result := make([]ServiceInstance, 0, len(instances))
+	for _, instance := range instances {
+		result = append(result, instance)
+	}
+	return result, nil
 }
 
-func (c *Client) RegisterService(ctx context.Context, appName, endpoint string) error {
-	key := ServicePrefix + appName
-	_, err := c.Client.Put(ctx, key, endpoint)
-	if err == nil {
-		c.mu.Lock()
-		c.endpoints[appName] = endpoint
-		c.mu.Unlock()
-		c.Logger.Info("registered service", zap.String("app", appName), zap.String("endpoint", endpoint))
+func (c *Client) GetServiceInstance(ctx context.Context, appName, version, instanceID string) (*ServiceInstance, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if c.services == nil {
+		return nil, fmt.Errorf("service %s not found", appName)
 	}
-	return err
+
+	if version == "" {
+		version = "v1"
+	}
+
+	versions, ok := c.services[appName]
+	if !ok {
+		return nil, fmt.Errorf("service %s not found", appName)
+	}
+
+	instances, ok := versions[version]
+	if !ok {
+		return nil, fmt.Errorf("service %s version %s not found", appName, version)
+	}
+
+	instance, ok := instances[instanceID]
+	if !ok {
+		return nil, fmt.Errorf("instance %s not found", instanceID)
+	}
+
+	return &instance, nil
 }
 
-func (c *Client) DeregisterService(ctx context.Context, appName string) error {
-	key := ServicePrefix + appName
-	_, err := c.Client.Delete(ctx, key)
-	if err == nil {
-		c.mu.Lock()
-		delete(c.endpoints, appName)
-		c.mu.Unlock()
-		c.Logger.Info("deregistered service", zap.String("app", appName))
+func (c *Client) GetHealthyInstance(ctx context.Context, appName, version string) (*ServiceInstance, error) {
+	instances, err := c.GetService(ctx, appName, version)
+	if err != nil {
+		return nil, err
 	}
-	return err
+
+	for i := range instances {
+		if instances[i].Status == "healthy" {
+			return &instances[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("no healthy instance found for %s version %s", appName, version)
 }
 
-func (c *Client) ListServices(ctx context.Context) (map[string]string, error) {
+func (c *Client) ListServices(ctx context.Context) (map[string]ServiceInfo, error) {
 	resp, err := c.Client.Get(ctx, ServicePrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
-	services := make(map[string]string)
+	result := make(map[string]ServiceInfo)
 	for _, kv := range resp.Kvs {
-		appName := strings.TrimPrefix(string(kv.Key), ServicePrefix)
-		services[appName] = string(kv.Value)
+		var instance ServiceInstance
+		if err := json.Unmarshal(kv.Value, &instance); err != nil {
+			continue
+		}
+
+		key := string(kv.Key)
+		parts := strings.Split(strings.TrimPrefix(key, ServicePrefix), "/")
+		if len(parts) < 3 {
+			continue
+		}
+		appName := parts[0]
+		version := parts[1]
+
+		info, ok := result[appName]
+		if !ok {
+			info = ServiceInfo{
+				AppName: appName,
+				Version: version,
+			}
+		}
+		info.Instances = append(info.Instances, instance)
+		result[appName] = info
 	}
 
 	c.mu.Lock()
-	c.endpoints = services
+	c.services = make(map[string]map[string]map[string]ServiceInstance)
+	for appName, info := range result {
+		if c.services[appName] == nil {
+			c.services[appName] = make(map[string]map[string]ServiceInstance)
+		}
+		for _, instance := range info.Instances {
+			version := instance.Version
+			if c.services[appName][version] == nil {
+				c.services[appName][version] = make(map[string]ServiceInstance)
+			}
+			c.services[appName][version][instance.InstanceID] = instance
+		}
+	}
 	c.mu.Unlock()
 
-	return services, nil
+	return result, nil
+}
+
+func (c *Client) ListAllServiceVersions(ctx context.Context) (map[string][]string, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	result := make(map[string][]string)
+	for appName, versions := range c.services {
+		for version := range versions {
+			result[appName] = append(result[appName], version)
+		}
+	}
+	return result, nil
+}
+
+func (c *Client) UpdateServiceStatus(ctx context.Context, appName, version, instanceID, status string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.services == nil {
+		return fmt.Errorf("service %s not found", appName)
+	}
+
+	if version == "" {
+		version = "v1"
+	}
+
+	versions, ok := c.services[appName]
+	if !ok {
+		return fmt.Errorf("service %s not found", appName)
+	}
+
+	instances, ok := versions[version]
+	if !ok {
+		return fmt.Errorf("service %s version %s not found", appName, version)
+	}
+
+	instance, ok := instances[instanceID]
+	if !ok {
+		return fmt.Errorf("instance %s not found", instanceID)
+	}
+
+	instance.Status = status
+	c.services[appName][version][instanceID] = instance
+
+	data, err := json.Marshal(instance)
+	if err != nil {
+		return fmt.Errorf("failed to marshal service instance: %w", err)
+	}
+
+	key := c.serviceKey(appName, version, instanceID)
+	_, err = c.Client.Put(ctx, key, string(data))
+	if err != nil {
+		return fmt.Errorf("failed to update service status: %w", err)
+	}
+
+	c.Logger.Info("updated service status",
+		zap.String("app", appName),
+		zap.String("version", version),
+		zap.String("instance_id", instanceID),
+		zap.String("status", status))
+	return nil
 }
 
 func (c *Client) watchServices(ctx context.Context) {
@@ -149,18 +402,45 @@ func (c *Client) watchServices(ctx context.Context) {
 					for _, event := range resp.Events {
 						switch event.Type {
 						case clientv3.EventTypePut:
-							appName := strings.TrimPrefix(string(event.Kv.Key), ServicePrefix)
+							var instance ServiceInstance
+							if err := json.Unmarshal(event.Kv.Value, &instance); err != nil {
+								continue
+							}
 							c.mu.Lock()
-							c.endpoints[appName] = string(event.Kv.Value)
+							if c.services == nil {
+								c.services = make(map[string]map[string]map[string]ServiceInstance)
+							}
+							if c.services[instance.AppName] == nil {
+								c.services[instance.AppName] = make(map[string]map[string]ServiceInstance)
+							}
+							if c.services[instance.AppName][instance.Version] == nil {
+								c.services[instance.AppName][instance.Version] = make(map[string]ServiceInstance)
+							}
+							c.services[instance.AppName][instance.Version][instance.InstanceID] = instance
 							c.mu.Unlock()
-							c.Logger.Debug("service updated", zap.String("app", appName), zap.String("endpoint", string(event.Kv.Value)))
+							c.Logger.Debug("service updated",
+								zap.String("app", instance.AppName),
+								zap.String("version", instance.Version),
+								zap.String("instance_id", instance.InstanceID))
 
 						case clientv3.EventTypeDelete:
-							appName := strings.TrimPrefix(string(event.Kv.Key), ServicePrefix)
+							key := string(event.Kv.Key)
+							parts := strings.Split(strings.TrimPrefix(key, ServicePrefix), "/")
+							if len(parts) < 3 {
+								continue
+							}
+							appName := parts[0]
+							version := parts[1]
+							instanceID := parts[2]
 							c.mu.Lock()
-							delete(c.endpoints, appName)
+							if c.services[appName] != nil && c.services[appName][version] != nil {
+								delete(c.services[appName][version], instanceID)
+							}
 							c.mu.Unlock()
-							c.Logger.Debug("service removed", zap.String("app", appName))
+							c.Logger.Debug("service removed",
+								zap.String("app", appName),
+								zap.String("version", version),
+								zap.String("instance_id", instanceID))
 						}
 					}
 				}
