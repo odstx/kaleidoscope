@@ -1,4 +1,4 @@
-.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build image run macos deploy check check-frontend check-backend docker-up docker-down docker-build release install
+.PHONY: dev backend frontend test test-backend test-frontend test-e2e swagger swag build-backend build build-frontend build-all _build-backend _build-frontend _copy-config image run macos deploy check check-frontend check-backend docker-up docker-down docker-build release install env env-new
 
 VERSION := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "dev")
 BUILD_ID := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -13,8 +13,14 @@ ifeq ($(ENV),dev)
 else ifeq ($(ENV),test)
 	API_PORT := 9000
 	FRONTEND_PORT := 9001
+else ifeq ($(ENV),uat)
+	API_PORT := 8002
+	FRONTEND_PORT := 8003
+else ifeq ($(ENV),prod)
+	API_PORT := 8000
+	FRONTEND_PORT := 8001
 else
-	$(error Invalid ENV value. Use 'dev' or 'test')
+	$(error Invalid ENV value. Use 'dev', 'test', 'uat' or 'prod')
 endif
 
 swagger:
@@ -66,18 +72,7 @@ dev:
 backend:
 	cd backend && go run . server
 
-build-backend:
-	@echo "Building backend with version info..."
-	@echo "Version: $(VERSION)"
-	@echo "Build ID: $(BUILD_ID)"
-	@echo "Build Time: $(BUILD_TIME)"
-	@echo "Git Commit: $(GIT_COMMIT)"
-	cd backend && go build -ldflags "\
-		-X 'kaleidoscope/version.Version=$(VERSION)' \
-		-X 'kaleidoscope/version.BuildID=$(BUILD_ID)' \
-		-X 'kaleidoscope/version.BuildTime=$(BUILD_TIME)' \
-		-X 'kaleidoscope/version.GitCommit=$(GIT_COMMIT)'" \
-		-o kaleidoscope .
+
 
 image:
 	@echo "Building Docker image for backend..."
@@ -88,26 +83,49 @@ image:
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
-API_BASE_URL ?= 
+API_BASE_URL ?=
+CONFIG_FILE ?=
 
-build:
+build-all:
 	@echo "Building frontend and backend to build directory..."
 	@echo "Target: $(GOOS)/$(GOARCH)"
 	@rm -rf build
 	@mkdir -p build
+	@$(MAKE) _build-backend
+	@$(MAKE) _build-frontend
+	@$(MAKE) _copy-config
+	@echo "Build complete. Output in build/ directory"
+
+ build: build-all
+
+_build-backend:
 	@echo "Building backend..."
+	@echo "Version: $(VERSION)"
+	@echo "Build ID: $(BUILD_ID)"
+	@echo "Build Time: $(BUILD_TIME)"
+	@echo "Git Commit: $(GIT_COMMIT)"
 	cd backend && GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -ldflags "\
 		-X 'kaleidoscope/version.Version=$(VERSION)' \
 		-X 'kaleidoscope/version.BuildID=$(BUILD_ID)' \
 		-X 'kaleidoscope/version.BuildTime=$(BUILD_TIME)' \
 		-X 'kaleidoscope/version.GitCommit=$(GIT_COMMIT)'" \
 		-o ../build/kaleidoscope .
+	@echo "Backend built successfully."
+
+_build-frontend:
 	@echo "Building frontend..."
 	cd frontend && VITE_API_BASE_URL="$(API_BASE_URL)" bun run build
+	@mv frontend/dist/* build/ 2>/dev/null || true
+	@echo "Frontend built successfully."
+
+ _copy-config:
 	@echo "Copying config file..."
+ifneq ($(CONFIG_FILE),)
+	@cp $(CONFIG_FILE) build/config.yaml
+else
 	@cp backend/config/config.yaml build/config.yaml
+endif
 	@sed -i '' 's/environment: "development"/environment: "production"/' build/config.yaml
-	@echo "Build complete. Output in build/ directory"
 
 frontend:
 	cd frontend && bun run dev
@@ -133,15 +151,9 @@ check:
 	cd backend && go run . check
 
 deploy:
-	@echo "Deploying to remote server..."
-	@if [ ! -f deploy/.env ]; then \
-		echo "Error: deploy/.env not found"; \
-		echo "Please configure deployment:"; \
-		echo "  1. cp deploy/.env.example deploy/.env"; \
-		echo "  2. Edit deploy/.env with your server details"; \
-		exit 1; \
-	fi
-	@bash deploy/deploy.sh
+	@echo "Deploying to remote server (ENV=$(ENV))..."
+	@bash deploy/deploy.sh $(ENV)
+	@echo "Deployment to $(ENV) completed"
 
 docker-up:
 	@echo "Starting services with docker-compose..."
@@ -177,3 +189,21 @@ install:
 	@which node >/dev/null 2>&1 || echo "Warning: node not found. Required for frontend build."
 	@which bun >/dev/null 2>&1 || echo "Warning: bun not found. Required for frontend development."
 	@echo "Installation complete!"
+
+env-new:
+ifndef ENV_NAME
+	$(error ENV_NAME is required. Usage: make env-new ENV_NAME=prod)
+endif
+	@echo "Creating new deployment environment: $(ENV_NAME)"
+	@mkdir -p deploy/$(ENV_NAME)
+	@cp deploy/.env.example deploy/$(ENV_NAME)/.env
+	@cp deploy/dev/config.yaml deploy/$(ENV_NAME)/config.yaml 2>/dev/null || true
+	@echo "Created deploy/$(ENV_NAME)/.env and config.yaml"
+	@echo "Please edit the files to configure the new environment"
+
+env:
+	@echo "Available deployment environments:"
+	@ls -1 deploy/ | grep -E '^(dev|test|prod)$$' || echo "  (none found)"
+	@echo ""
+	@echo "To deploy: make deploy ENV=dev"
+	@echo "To create new: make env-new ENV_NAME=prod"
