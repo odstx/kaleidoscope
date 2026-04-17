@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
@@ -12,13 +13,19 @@ import { Navbar } from './components/Navbar';
 import { AgentChat } from './components/AgentChat';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { fetchAgentEnabled } from './utils/oidc';
 import './i18n';
 
 type Layout = 'floating' | 'fullscreen';
 
 function AppContent() {
+  const [agentEnabled, setAgentEnabled] = useState(true);
   const handleLayoutChange = (_layout: Layout, _isOpen: boolean) => {
   };
+
+  useEffect(() => {
+    fetchAgentEnabled().then(setAgentEnabled).catch(() => setAgentEnabled(true));
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -28,7 +35,7 @@ function AppContent() {
           <Outlet />
         </div>
       </div>
-      <AgentChat onLayoutChange={handleLayoutChange} />
+      {agentEnabled && <AgentChat onLayoutChange={handleLayoutChange} />}
       <Footer />
     </div>
   );

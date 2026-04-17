@@ -38,6 +38,7 @@ type FrontendConfig struct {
 	OIDCEnabled     bool   `json:"oidcEnabled"`
 	OIDCIssuerURL   string `json:"oidcIssuerUrl"`
 	OIDCRedirectURI string `json:"oidcRedirectUri"`
+	AgentEnabled    bool   `json:"agentEnabled"`
 }
 
 // GetConfig godoc
@@ -53,6 +54,7 @@ func (sc *SystemController) GetConfig(c *gin.Context) {
 		OIDCEnabled:     sc.cfg.OIDC.Enabled,
 		OIDCIssuerURL:   sc.cfg.OIDC.IssuerURL,
 		OIDCRedirectURI: sc.cfg.OIDC.RedirectURI,
+		AgentEnabled:    sc.cfg.AgentEnabled,
 	}
 	c.JSON(http.StatusOK, cfg)
 }

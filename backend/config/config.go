@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -24,6 +26,7 @@ type Config struct {
 	OIDC         OIDCConfig         `mapstructure:"oidc"`
 	Microservice MicroserviceConfig `mapstructure:"microservice"`
 	LLM          LLMConfig          `mapstructure:"llm"`
+	AgentEnabled bool               `mapstructure:"agent_enabled"`
 }
 
 type ServerConfig struct {
@@ -288,6 +291,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("oidc.scopes", []string{"openid", "profile", "email"})
 	viper.SetDefault("microservice.enabled", false)
 	viper.SetDefault("microservice.service_domain", "service")
+	viper.SetDefault("agent_enabled", true)
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {
@@ -345,17 +349,22 @@ func InitLogger(cfg *Config) (*zap.Logger, error) {
 	}
 
 	if cfg.Log.EnableFile {
-		if err := os.MkdirAll(cfg.Log.FilePath[:len(cfg.Log.FilePath)-len("app.log")], 0755); err != nil {
+		dir := filepath.Dir(cfg.Log.FilePath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		file, err := os.OpenFile(cfg.Log.FilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		if err != nil {
-			return nil, fmt.Errorf("failed to open log file: %w", err)
+		fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
+
+		lumberjackLogger := &lumberjack.Logger{
+			Filename:   cfg.Log.FilePath,
+			MaxSize:    cfg.Log.MaxSize,
+			MaxBackups: cfg.Log.MaxBackups,
+			MaxAge:     cfg.Log.MaxAge,
+			Compress:   cfg.Log.Compress,
 		}
 
-		fileEncoder := zapcore.NewJSONEncoder(encoderConfig)
-		fileWriter := zapcore.AddSync(file)
+		fileWriter := zapcore.AddSync(lumberjackLogger)
 		cores = append(cores, zapcore.NewCore(fileEncoder, fileWriter, zapcore.InfoLevel))
 	}
 

@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Build outputs
+kaleidoscope
+*.exe
+
+# Test files
+*_test.go
+/coverage.out
+*.cov
+
+# Docs
+/docs
+README.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+
+# CI
+.github/

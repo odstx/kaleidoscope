@@ -10,9 +10,11 @@ export interface FrontendConfig {
   oidcEnabled: boolean
   oidcIssuerUrl: string
   oidcRedirectUri: string
+  agentEnabled: boolean
 }
 
 let cachedConfig: OidcConfig | null = null
+let cachedAgentEnabled: boolean | null = null
 
 export async function fetchFrontendConfig(): Promise<OidcConfig> {
   if (cachedConfig) {
@@ -32,6 +34,7 @@ export async function fetchFrontendConfig(): Promise<OidcConfig> {
       clientId: data.oidcClientId || '',
       redirectUri: data.oidcRedirectUri || '',
     }
+    cachedAgentEnabled = data.agentEnabled ?? true
     return cachedConfig
   } catch {
     cachedConfig = {
@@ -40,8 +43,17 @@ export async function fetchFrontendConfig(): Promise<OidcConfig> {
       clientId: '',
       redirectUri: '',
     }
+    cachedAgentEnabled = true
     return cachedConfig
   }
+}
+
+export async function fetchAgentEnabled(): Promise<boolean> {
+  if (cachedAgentEnabled !== null) {
+    return cachedAgentEnabled
+  }
+  await fetchFrontendConfig()
+  return cachedAgentEnabled ?? true
 }
 
 

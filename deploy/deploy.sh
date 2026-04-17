@@ -2,12 +2,33 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/.env"
+ENV="${1:-dev}"
+
+DEPLOY_KEEP_PACKAGES="${DEPLOY_KEEP_PACKAGES:-5}"
+echo "Step 0: Cleaning old deployment packages..."
+find "$SCRIPT_DIR" -maxdepth 1 -name "deploy-*.tar.gz" -type f -mtime +7 | sort | head -n -"$DEPLOY_KEEP_PACKAGES" | xargs -r rm -f
+echo "Cleaned old packages (keeping latest $DEPLOY_KEEP_PACKAGES)"
+
+case "$ENV" in
+    dev|test|prod) ;;
+    *)
+        echo "Error: Invalid ENV '$ENV'. Use: dev, test, prod"
+        exit 1
+        ;;
+esac
+
+ENV_FILE="${SCRIPT_DIR}/${ENV}/.env"
+CONFIG_FILE="${SCRIPT_DIR}/${ENV}/config.yaml"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: $ENV_FILE not found"
-    echo "Please copy .env.example to .env and configure it:"
-    echo "  cp deploy/.env.example deploy/.env"
+    echo "Please configure deployment for '$ENV':"
+    echo "  cp deploy/.env.example deploy/${ENV}/.env"
+    exit 1
+fi
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Error: $CONFIG_FILE not found"
     exit 1
 fi
 
@@ -25,6 +46,7 @@ DEPLOY_RESTART_SERVICE="${DEPLOY_RESTART_SERVICE:-true}"
 DEPLOY_SERVICE_NAME="${DEPLOY_SERVICE_NAME:-kaleidoscope}"
 DEPLOY_ENV="${DEPLOY_ENV:-production}"
 API_BASE_URL="${API_BASE_URL:-}"
+DEPLOY_UPLOAD_LIMIT="${DEPLOY_UPLOAD_LIMIT:-0}"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 if [ -f "$DEPLOY_KEY_PATH" ]; then
@@ -32,13 +54,18 @@ if [ -f "$DEPLOY_KEY_PATH" ]; then
 fi
 
 SSH_CMD="ssh $SSH_OPTS -p $DEPLOY_PORT $DEPLOY_USER@$DEPLOY_HOST"
-SCP_CMD="scp $SSH_OPTS -P $DEPLOY_PORT"
+SCP_LIMIT_OPTS=""
+if [ "$DEPLOY_UPLOAD_LIMIT" -gt 0 ] 2>/dev/null; then
+    SCP_LIMIT_OPTS="-l $DEPLOY_UPLOAD_LIMIT"
+fi
+SCP_CMD="scp $SCP_LIMIT_OPTS $SSH_OPTS -P $DEPLOY_PORT"
 
 echo "=== Deployment Configuration ==="
 echo "Host: $DEPLOY_HOST:$DEPLOY_PORT"
 echo "User: $DEPLOY_USER"
 echo "Remote Path: $DEPLOY_REMOTE_PATH"
 echo "Environment: $DEPLOY_ENV"
+echo "Upload Limit: ${DEPLOY_UPLOAD_LIMIT:-0} Kbps"
 echo "================================"
 
 echo ""
@@ -93,8 +120,8 @@ esac
 echo "Build Target: $GOOS/$GOARCH"
 
 echo ""
-echo "Step 2: Building project for $GOOS/$GOARCH..."
-make build GOOS=$GOOS GOARCH=$GOARCH API_BASE_URL="$API_BASE_URL"
+echo "Step 2: Building project for $GOOS/$GOARCH with config: $CONFIG_FILE"
+make build GOOS=$GOOS GOARCH=$GOARCH API_BASE_URL="$API_BASE_URL" CONFIG_FILE="$CONFIG_FILE"
 
 echo ""
 echo "Step 3: Creating deployment package..."
