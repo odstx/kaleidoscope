@@ -24,6 +24,7 @@ type Config struct {
 	OIDC         OIDCConfig         `mapstructure:"oidc"`
 	Microservice MicroserviceConfig `mapstructure:"microservice"`
 	LLM          LLMConfig          `mapstructure:"llm"`
+	AgentEnabled bool               `mapstructure:"agent_enabled"`
 }
 
 type ServerConfig struct {
@@ -288,6 +289,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("oidc.scopes", []string{"openid", "profile", "email"})
 	viper.SetDefault("microservice.enabled", false)
 	viper.SetDefault("microservice.service_domain", "service")
+	viper.SetDefault("agent_enabled", true)
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {
