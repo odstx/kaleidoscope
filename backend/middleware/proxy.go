@@ -61,6 +61,23 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 		}
 
 		appName := parts[0]
+
+		if len(cfg.Microservice.AppWhitelist) > 0 {
+			allowed := false
+			for _, allowedApp := range cfg.Microservice.AppWhitelist {
+				if allowedApp == appName {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				RecordMicroserviceRequest(appName, time.Since(start), http.StatusForbidden)
+				c.JSON(http.StatusForbidden, gin.H{"error": "app not allowed"})
+				c.Abort()
+				return
+			}
+		}
+
 		breaker := appCircuitBreakers.GetBreaker(appName)
 
 		if !breaker.Allow() {

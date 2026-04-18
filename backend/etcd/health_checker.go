@@ -12,16 +12,17 @@ import (
 )
 
 type HealthChecker struct {
-	client      *Client
-	logger      *zap.Logger
+	client        *Client
+	logger        *zap.Logger
 	checkInterval time.Duration
 	timeout       time.Duration
 	stopCh        chan struct{}
 	instanceHealth map[string]bool
 	mu            sync.RWMutex
+	whitelist     []string
 }
 
-func NewHealthChecker(client *Client, logger *zap.Logger, checkInterval, timeout time.Duration) *HealthChecker {
+func NewHealthChecker(client *Client, logger *zap.Logger, checkInterval, timeout time.Duration, whitelist []string) *HealthChecker {
 	return &HealthChecker{
 		client:        client,
 		logger:        logger,
@@ -29,7 +30,20 @@ func NewHealthChecker(client *Client, logger *zap.Logger, checkInterval, timeout
 		timeout:       timeout,
 		stopCh:        make(chan struct{}),
 		instanceHealth: make(map[string]bool),
+		whitelist:     whitelist,
 	}
+}
+
+func (hc *HealthChecker) isAllowed(appName string) bool {
+	if len(hc.whitelist) == 0 {
+		return true
+	}
+	for _, allowed := range hc.whitelist {
+		if allowed == appName {
+			return true
+		}
+	}
+	return false
 }
 
 func (hc *HealthChecker) Start() {
@@ -66,8 +80,11 @@ func (hc *HealthChecker) checkAllInstances() {
 		return
 	}
 
-	now := time.Now()
 	for appName, info := range services {
+		if !hc.isAllowed(appName) {
+			continue
+		}
+
 		for _, instance := range info.Instances {
 			healthy := hc.checkInstance(instance.Endpoint)
 			instanceID := instance.InstanceID
@@ -105,8 +122,6 @@ func (hc *HealthChecker) checkAllInstances() {
 				}
 			}
 			hc.client.mu.Unlock()
-
-			_ = now
 		}
 	}
 }

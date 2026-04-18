@@ -79,9 +79,9 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 			logger.Warn("Failed to load initial services from etcd", zap.Error(err))
 		}
 
-		healthChecker = etcd.NewHealthChecker(etcdClient, logger, 15*time.Second, 5*time.Second)
+		healthChecker = etcd.NewHealthChecker(etcdClient, logger, 15*time.Second, 5*time.Second, config.Microservice.AppWhitelist)
 		healthChecker.Start()
-		logger.Info("Microservice health checker enabled")
+		logger.Info("Microservice health checker enabled", zap.Int("whitelist_count", len(config.Microservice.AppWhitelist)))
 	}
 
 	// Create Asynq client for task enqueuing
