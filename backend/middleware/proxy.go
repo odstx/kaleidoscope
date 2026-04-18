@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"kaleidoscope/config"
 	"kaleidoscope/etcd"
@@ -37,6 +38,8 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 			return
 		}
 
+		start := time.Now()
+
 		auth(c)
 		if c.IsAborted() {
 			return
@@ -58,6 +61,15 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 		}
 
 		appName := parts[0]
+		breaker := appCircuitBreakers.GetBreaker(appName)
+
+		if !breaker.Allow() {
+			RecordMicroserviceRequest(appName, time.Since(start), http.StatusServiceUnavailable)
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "circuit breaker open"})
+			c.Abort()
+			return
+		}
+
 		version := ""
 		targetPath := ""
 		if len(parts) > 1 {
@@ -88,6 +100,8 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 		}
 
 		if version == "" {
+			breaker.RecordFailure()
+			RecordMicroserviceRequest(appName, time.Since(start), http.StatusServiceUnavailable)
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service not found"})
 			c.Abort()
 			return
@@ -95,10 +109,14 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 
 		instance, err := etcdClient.GetHealthyInstance(c.Request.Context(), appName, version)
 		if err != nil {
+			breaker.RecordFailure()
+			RecordMicroserviceRequest(appName, time.Since(start), http.StatusServiceUnavailable)
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "service unavailable"})
 			c.Abort()
 			return
 		}
+
+		RecordInstanceHealth(appName, instance.InstanceID, true)
 
 		targetURL := fmt.Sprintf("http://%s%s", instance.Endpoint, targetPath)
 
@@ -108,7 +126,6 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 
 		originalDirector := proxy.Director
 		proxy.Director = func(req *http.Request) {
-
 			originalDirector(req)
 			req.URL = target
 
@@ -120,6 +137,12 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 			otel.GetTextMapPropagator().Inject(req.Context(), propagation.HeaderCarrier(req.Header))
 		}
 
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			breaker.RecordFailure()
+			RecordMicroserviceRequest(appName, time.Since(start), http.StatusBadGateway)
+			http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		}
+
 		ctx, span := tracer.Start(c.Request.Context(), "proxy to "+appName,
 			trace.WithAttributes(
 				attribute.String("app.name", appName),
@@ -129,7 +152,10 @@ func MicroserviceProxy(cfg *config.Config, db *gorm.DB, etcdClient *etcd.Client)
 		defer span.End()
 
 		c.Request = c.Request.WithContext(ctx)
+
 		proxy.ServeHTTP(c.Writer, c.Request)
+		breaker.RecordSuccess()
+		RecordMicroserviceRequest(appName, time.Since(start), http.StatusOK)
 		c.Abort()
 	}
 }

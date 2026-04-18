@@ -139,7 +139,7 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
         body: JSON.stringify({ message: userMessage }),
       })
       setMessages((prev) => [...prev, { role: 'assistant', content: resp.message }])
-    } catch (err) {
+    } catch {
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: t('agent.error') },
@@ -254,20 +254,4 @@ export function AgentChat({ onLayoutChange, embedded = false }: AgentChatProps) 
       {renderChat()}
     </>
   )
-}
-
-export function useAgentChat() {
-  const [agentChatOpen, setAgentChatOpen] = useState(false)
-  const [agentChatLayout, setAgentChatLayout] = useState<Layout>('floating')
-
-  const handleLayoutChange = (layout: Layout, isOpen: boolean) => {
-    setAgentChatLayout(layout)
-    setAgentChatOpen(isOpen)
-  }
-
-  return {
-    agentChatOpen,
-    agentChatLayout,
-    handleLayoutChange,
-  }
 }

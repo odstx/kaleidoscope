@@ -10,6 +10,7 @@ import (
 
 	"gorm.io/gorm"
 	"kaleidoscope/config"
+	"kaleidoscope/metrics"
 	"kaleidoscope/models"
 )
 
@@ -25,6 +26,12 @@ func NewAgentService(db *gorm.DB, cfg *config.Config) *AgentService {
 }
 
 func (s *AgentService) Chat(ctx context.Context, userUID, userMessage string) (string, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordAgentRequest(time.Since(start), err == nil)
+	}()
+
 	var agent models.Agent
 	if err := s.db.WithContext(ctx).Where("user_uid = ?", userUID).First(&agent).Error; err != nil {
 		agent = models.Agent{

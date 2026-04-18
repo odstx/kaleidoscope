@@ -102,6 +102,8 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	router.Use(gin.Recovery())
 	router.Use(middleware.PrometheusMetrics())
 
+	middleware.InitCircuitBreakerMetrics()
+
 	if len(config.CORS.AllowOrigins) == 1 && config.CORS.AllowOrigins[0] == "*" {
 		logger.Warn("CORS AllowOrigins is set to '*', which is insecure. Consider specifying explicit origins.")
 	}
