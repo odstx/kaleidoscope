@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"kaleidoscope/metrics"
+
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
@@ -100,6 +102,11 @@ func (c *Client) versionKey(appName, version string) string {
 }
 
 func (c *Client) RegisterService(ctx context.Context, appName, version, instanceID, endpoint string, metadata map[string]string) error {
+	start := time.Now()
+	defer func() {
+		metrics.RecordEtcdOperation("register", time.Since(start), true)
+	}()
+
 	if version == "" {
 		version = "v1"
 	}
@@ -119,12 +126,14 @@ func (c *Client) RegisterService(ctx context.Context, appName, version, instance
 
 	data, err := json.Marshal(instance)
 	if err != nil {
+		metrics.RecordEtcdOperation("register", time.Since(start), false)
 		return fmt.Errorf("failed to marshal service instance: %w", err)
 	}
 
 	key := c.serviceKey(appName, version, instanceID)
 	_, err = c.Client.Put(ctx, key, string(data))
 	if err != nil {
+		metrics.RecordEtcdOperation("register", time.Since(start), false)
 		return fmt.Errorf("failed to register service: %w", err)
 	}
 

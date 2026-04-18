@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	"kaleidoscope/metrics"
 )
 
 var (
@@ -35,6 +37,50 @@ var (
 		[]string{"method", "path"},
 	)
 )
+
+func RecordUserOperation(operation string, duration time.Duration, success bool) {
+	metrics.RecordUserOperation(operation, duration, success)
+}
+
+func RecordTOTPOperation(operation string, success bool) {
+	metrics.RecordTOTPOperation(operation, success)
+}
+
+func RecordAuthOperation(authType string, success bool) {
+	metrics.RecordAuthOperation(authType, success)
+}
+
+func RecordDatabaseQuery(operation, table string, duration time.Duration) {
+	metrics.RecordDatabaseQuery(operation, table, duration)
+}
+
+func RecordEtcdOperation(operation string, duration time.Duration, success bool) {
+	metrics.RecordEtcdOperation(operation, duration, success)
+}
+
+func RecordMicroserviceRequest(app string, duration time.Duration, statusCode int) {
+	metrics.RecordMicroserviceRequest(app, duration, statusCode)
+}
+
+func RecordCircuitBreakerState(app string, state float64) {
+	metrics.RecordCircuitBreakerState(app, state)
+}
+
+func RecordInstanceHealth(app, instanceID string, healthy bool) {
+	metrics.RecordInstanceHealth(app, instanceID, healthy)
+}
+
+func RecordAgentRequest(duration time.Duration, success bool) {
+	metrics.RecordAgentRequest(duration, success)
+}
+
+func RecordEmailTask(taskType string, success bool) {
+	metrics.RecordEmailTask(taskType, success)
+}
+
+func SetActiveUsers(count float64) {
+	metrics.SetActiveUsers(count)
+}
 
 func PrometheusMetrics() gin.HandlerFunc {
 	return func(c *gin.Context) {

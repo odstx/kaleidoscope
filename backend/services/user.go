@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"kaleidoscope/metrics"
 	"kaleidoscope/models"
 	"kaleidoscope/utils"
 	"kaleidoscope/worker"
@@ -48,10 +49,24 @@ func (s *UserService) ResetFailedLogin(user *models.User) error {
 	return s.db.Save(user).Error
 }
 
-// Register creates a new user with the provided username, email and password
-// It validates the input, hashes the password, and persists to database
+func (s *UserService) countUsers() int64 {
+	var count int64
+	s.db.Model(&models.User{}).Count(&count)
+	return count
+}
+
+func (s *UserService) updateActiveUsersMetric() {
+	count := s.countUsers()
+	metrics.SetActiveUsers(float64(count))
+}
+
 func (s *UserService) Register(username, email, password string) (*models.User, error) {
-	// Input validation
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("register", time.Since(start), err == nil)
+	}()
+
 	if username == "" {
 		return nil, errors.New("username is required")
 	}
@@ -65,7 +80,6 @@ func (s *UserService) Register(username, email, password string) (*models.User, 
 		return nil, errors.New("password must be at least 8 characters long")
 	}
 
-	// Check if user already exists
 	var existingUser models.User
 	if err := s.db.Where("email = ?", email).First(&existingUser).Error; err == nil {
 		return nil, errors.New("user with this email already exists")
@@ -73,38 +87,44 @@ func (s *UserService) Register(username, email, password string) (*models.User, 
 		return nil, fmt.Errorf("database error while checking existing user: %w", err)
 	}
 
-	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Create new user
 	user := &models.User{
 		Username: username,
 		Email:    email,
 		Password: string(hashedPassword),
 	}
 
-	// Save to database
 	if err := s.db.Create(user).Error; err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// Enqueue welcome email task
 	if s.client != nil {
-		if err := s.client.EnqueueSendWelcomeEmail(context.Background(), user.ID, user.Username, user.Email); err != nil {
-			// Log the error but don't fail the registration - email sending is best effort
-			fmt.Printf("Warning: failed to enqueue welcome email: %v\n", err)
+		if emailErr := s.client.EnqueueSendWelcomeEmail(context.Background(), user.ID, user.Username, user.Email); emailErr != nil {
+			fmt.Printf("Warning: failed to enqueue welcome email: %v\n", emailErr)
+			metrics.RecordEmailTask("welcome_email", false)
+		} else {
+			metrics.RecordEmailTask("welcome_email", true)
 		}
 	}
 
-	// Remove password from returned user for security
+	s.updateActiveUsersMetric()
+
 	user.Password = ""
 	return user, nil
 }
 
 func (s *UserService) Login(email, password string, maxAttempts, lockoutMins int) (*models.User, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordAuthOperation("login", err == nil)
+		metrics.RecordUserOperation("login", time.Since(start), err == nil)
+	}()
+
 	if email == "" {
 		return nil, errors.New("email is required")
 	}
@@ -136,6 +156,13 @@ func (s *UserService) Login(email, password string, maxAttempts, lockoutMins int
 }
 
 func (s *UserService) GenerateTOTP(userID uint) (string, string, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordTOTPOperation("generate", err == nil)
+		metrics.RecordUserOperation("totp_generate", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return "", "", fmt.Errorf("user not found: %w", err)
@@ -157,6 +184,13 @@ func (s *UserService) GenerateTOTP(userID uint) (string, string, error) {
 }
 
 func (s *UserService) VerifyTOTP(userID uint, code string) (bool, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordTOTPOperation("verify", err == nil)
+		metrics.RecordUserOperation("totp_verify", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return false, fmt.Errorf("user not found: %w", err)
@@ -179,6 +213,13 @@ func (s *UserService) VerifyTOTP(userID uint, code string) (bool, error) {
 }
 
 func (s *UserService) EnableTOTP(userID uint) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordTOTPOperation("enable", err == nil)
+		metrics.RecordUserOperation("totp_enable", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -201,6 +242,13 @@ func (s *UserService) EnableTOTP(userID uint) error {
 }
 
 func (s *UserService) DisableTOTP(userID uint) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordTOTPOperation("disable", err == nil)
+		metrics.RecordUserOperation("totp_disable", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -217,6 +265,12 @@ func (s *UserService) DisableTOTP(userID uint) error {
 }
 
 func (s *UserService) GetUserByID(userID uint) (*models.User, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("get_user", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -230,6 +284,13 @@ func (s *UserService) GetUserByID(userID uint) (*models.User, error) {
 }
 
 func (s *UserService) LoginWithTOTP(email, password, totpCode string, maxAttempts, lockoutMins int) (*models.User, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordAuthOperation("login_totp", err == nil)
+		metrics.RecordUserOperation("login_totp", time.Since(start), err == nil)
+	}()
+
 	user, err := s.Login(email, password, maxAttempts, lockoutMins)
 	if err != nil {
 		return nil, err
@@ -254,6 +315,12 @@ func (s *UserService) LoginWithTOTP(email, password, totpCode string, maxAttempt
 }
 
 func (s *UserService) GenerateHawkKey(userID uint) (string, error) {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("hawk_generate", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return "", fmt.Errorf("user not found: %w", err)
@@ -274,6 +341,12 @@ func (s *UserService) GenerateHawkKey(userID uint) (string, error) {
 }
 
 func (s *UserService) EnableHawk(userID uint) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("hawk_enable", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -292,6 +365,12 @@ func (s *UserService) EnableHawk(userID uint) error {
 }
 
 func (s *UserService) DisableHawk(userID uint) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("hawk_disable", time.Since(start), err == nil)
+	}()
+
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return fmt.Errorf("user not found: %w", err)
@@ -307,6 +386,13 @@ func (s *UserService) DisableHawk(userID uint) error {
 }
 
 func (s *UserService) ForgotPassword(email string) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordAuthOperation("forgot_password", err == nil)
+		metrics.RecordUserOperation("forgot_password", time.Since(start), err == nil)
+	}()
+
 	if email == "" {
 		return errors.New("email is required")
 	}
@@ -329,8 +415,11 @@ func (s *UserService) ForgotPassword(email string) error {
 	}
 
 	if s.client != nil {
-		if err := s.client.EnqueueSendPasswordResetEmail(context.Background(), user.ID, user.Username, user.Email, token); err != nil {
-			fmt.Printf("Warning: failed to enqueue password reset email: %v\n", err)
+		if emailErr := s.client.EnqueueSendPasswordResetEmail(context.Background(), user.ID, user.Username, user.Email, token); emailErr != nil {
+			fmt.Printf("Warning: failed to enqueue password reset email: %v\n", emailErr)
+			metrics.RecordEmailTask("password_reset", false)
+		} else {
+			metrics.RecordEmailTask("password_reset", true)
 		}
 	}
 
@@ -338,6 +427,12 @@ func (s *UserService) ForgotPassword(email string) error {
 }
 
 func (s *UserService) ResetPassword(token, newPassword string) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("reset_password", time.Since(start), err == nil)
+	}()
+
 	if token == "" {
 		return errors.New("token is required")
 	}
@@ -376,6 +471,12 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 }
 
 func (s *UserService) UpdateUsername(userID uint, newUsername string) error {
+	start := time.Now()
+	var err error
+	defer func() {
+		metrics.RecordUserOperation("update_username", time.Since(start), err == nil)
+	}()
+
 	if newUsername == "" {
 		return errors.New("username is required")
 	}

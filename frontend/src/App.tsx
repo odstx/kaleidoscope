@@ -16,12 +16,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { fetchAgentEnabled } from './utils/oidc';
 import './i18n';
 
-type Layout = 'floating' | 'fullscreen';
-
 function AppContent() {
   const [agentEnabled, setAgentEnabled] = useState(true);
-  const handleLayoutChange = (_layout: Layout, _isOpen: boolean) => {
-  };
 
   useEffect(() => {
     fetchAgentEnabled().then(setAgentEnabled).catch(() => setAgentEnabled(true));
@@ -35,7 +31,7 @@ function AppContent() {
           <Outlet />
         </div>
       </div>
-      {agentEnabled && <AgentChat onLayoutChange={handleLayoutChange} />}
+      {agentEnabled && <AgentChat />}
       <Footer />
     </div>
   );
