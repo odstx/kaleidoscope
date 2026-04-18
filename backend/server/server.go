@@ -91,7 +91,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		config.Redis.DB,
 	)
 
-	userService := services.NewUserService(db.DB, asynqClient, config.Security.ResetTokenExpirationHours)
+	userService := services.NewUserService(db.DB, asynqClient, config.Security.ResetTokenExpirationHours, logger)
 	oidcService := services.NewOIDCService(&config.OIDC)
 	appService := services.NewAppService(db.DB)
 	agentService := services.NewAgentService(db.DB, config)

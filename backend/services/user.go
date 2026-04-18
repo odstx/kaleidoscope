@@ -4,25 +4,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
 	"kaleidoscope/metrics"
 	"kaleidoscope/models"
 	"kaleidoscope/utils"
 	"kaleidoscope/worker"
-	"time"
-
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type UserService struct {
 	db                      *gorm.DB
 	client                  *worker.Client
 	resetTokenExpirationHrs int
+	logger                  *zap.Logger
 }
 
-func NewUserService(db *gorm.DB, client *worker.Client, resetTokenExpirationHrs int) *UserService {
-	return &UserService{db: db, client: client, resetTokenExpirationHrs: resetTokenExpirationHrs}
+func NewUserService(db *gorm.DB, client *worker.Client, resetTokenExpirationHrs int, logger *zap.Logger) *UserService {
+	return &UserService{db: db, client: client, resetTokenExpirationHrs: resetTokenExpirationHrs, logger: logger}
 }
 
 func (s *UserService) GetDB() *gorm.DB {
@@ -136,24 +139,76 @@ func (s *UserService) Login(email, password string, maxAttempts, lockoutMins int
 	var user models.User
 	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logSecurityEvent("login_failed", "medium", email, "user_not_found", nil)
 			return nil, errors.New("invalid email or password")
 		}
 		return nil, fmt.Errorf("database error while finding user: %w", err)
 	}
 
 	if locked, until := s.IsLockedOut(&user); locked {
+		s.logSecurityEvent("login_failed", "high", email, "account_locked", map[string]interface{}{
+			"lockout_until": until,
+		})
 		return nil, fmt.Errorf("account is locked until %d", until)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		_ = s.RecordFailedLogin(&user, maxAttempts, lockoutMins)
+		s.recordFailedLoginAndLog(&user, maxAttempts, lockoutMins)
+		s.logSecurityEvent("login_failed", "medium", email, "invalid_password", map[string]interface{}{
+			"failed_attempts": user.FailedLoginAttempts + 1,
+		})
 		return nil, errors.New("invalid email or password")
 	}
 
 	_ = s.ResetFailedLogin(&user)
 
+	if s.logger != nil {
+		s.logger.Info("User logged in successfully",
+			zap.String("email", email),
+			zap.Uint("user_id", user.ID),
+			zap.String("uid", user.UID),
+		)
+	}
+
 	user.Password = ""
 	return &user, nil
+}
+
+func (s *UserService) recordFailedLoginAndLog(user *models.User, maxAttempts, lockoutMins int) {
+	_ = s.RecordFailedLogin(user, maxAttempts, lockoutMins)
+	
+	if s.logger != nil {
+		eventType := "failed_login_attempt"
+		severity := "medium"
+		details := map[string]interface{}{
+			"failed_attempts": user.FailedLoginAttempts,
+			"max_attempts":    maxAttempts,
+		}
+		
+		if user.FailedLoginAttempts >= maxAttempts {
+			eventType = "account_locked"
+			severity = "high"
+			details["lockout_until"] = user.LockoutUntil
+		}
+		
+		s.logSecurityEvent(eventType, severity, user.Email, "login_failure", details)
+	}
+}
+
+func (s *UserService) logSecurityEvent(eventType, severity, email, reason string, details map[string]interface{}) {
+	if s.logger == nil {
+		return
+	}
+	
+	s.logger.Warn("Security event",
+		zap.String("event_type", eventType),
+		zap.String("severity", severity),
+		zap.String("email", email),
+		zap.String("reason", reason),
+		zap.Any("details", details),
+	)
+	
+	metrics.RecordSecurityEvent(eventType, severity, time.Duration(0))
 }
 
 func (s *UserService) GenerateTOTP(userID uint) (string, string, error) {
@@ -299,6 +354,7 @@ func (s *UserService) LoginWithTOTP(email, password, totpCode string, maxAttempt
 
 	if user.TOTPEnabled {
 		if totpCode == "" {
+			s.logSecurityEvent("login_failed", "high", email, "totp_required", nil)
 			return nil, errors.New("TOTP code required")
 		}
 
@@ -308,6 +364,7 @@ func (s *UserService) LoginWithTOTP(email, password, totpCode string, maxAttempt
 		}
 
 		if !utils.VerifyTOTPCode(fullUser.TOTPSecret, totpCode) {
+			s.logSecurityEvent("login_failed", "high", email, "invalid_totp", nil)
 			return nil, errors.New("invalid TOTP code")
 		}
 	}
@@ -451,12 +508,14 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 	var user models.User
 	if err := s.db.Where("reset_token = ?", token).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logSecurityEvent("reset_password_failed", "medium", "", "invalid_token", nil)
 			return errors.New("invalid or expired reset token")
 		}
 		return fmt.Errorf("database error while finding user: %w", err)
 	}
 
 	if time.Now().Unix() > user.ResetTokenExpiresAt {
+		s.logSecurityEvent("reset_password_failed", "medium", user.Email, "expired_token", nil)
 		return errors.New("reset token has expired")
 	}
 
@@ -471,6 +530,8 @@ func (s *UserService) ResetPassword(token, newPassword string) error {
 	if err := s.db.Save(&user).Error; err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
+
+	s.logSecurityEvent("password_reset", "medium", user.Email, "success", nil)
 
 	return nil
 }

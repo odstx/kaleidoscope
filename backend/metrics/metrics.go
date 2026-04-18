@@ -157,6 +157,23 @@ var (
 		},
 		[]string{"type", "status"},
 	)
+
+	SecurityEventsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "security_events_total",
+			Help: "Total number of security events",
+		},
+		[]string{"event_type", "severity"},
+	)
+
+	SecurityEventDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "security_event_duration_seconds",
+			Help:    "Duration of security event processing",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1},
+		},
+		[]string{"event_type"},
+	)
 )
 
 func RecordUserOperation(operation string, duration time.Duration, success bool) {
@@ -234,4 +251,9 @@ func RecordEmailTask(taskType string, success bool) {
 
 func SetActiveUsers(count float64) {
 	ActiveUsersGauge.Set(count)
+}
+
+func RecordSecurityEvent(eventType, severity string, duration time.Duration) {
+	SecurityEventsTotal.WithLabelValues(eventType, severity).Inc()
+	SecurityEventDuration.WithLabelValues(eventType).Observe(duration.Seconds())
 }
