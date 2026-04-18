@@ -96,11 +96,12 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	appService := services.NewAppService(db.DB)
 	agentService := services.NewAgentService(db.DB, config)
 
-	var rateLimiter *middleware.RateLimiter
-	if config.RateLimit.Enabled {
-		rateLimiter = middleware.NewRateLimiter(db.Redis, config.RateLimit.RequestsPerMinute)
-		logger.Info("Rate limiter enabled", zap.Int("requests_per_minute", config.RateLimit.RequestsPerMinute))
+	requestsPerMinute := config.RateLimit.RequestsPerMinute
+	if requestsPerMinute <= 0 {
+		requestsPerMinute = 60
 	}
+	rateLimiter := middleware.NewRateLimiter(db.Redis, requestsPerMinute)
+	logger.Info("Rate limiter enabled", zap.Int("requests_per_minute", requestsPerMinute))
 
 	router := gin.New()
 
