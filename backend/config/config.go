@@ -155,6 +155,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("rate_limit.requests_per_minute", 60)
 	viper.SetDefault("security.max_login_attempts", 5)
 	viper.SetDefault("security.lockout_duration_mins", 15)
+	viper.SetDefault("security.reset_token_expiration_hours", 1)
 	viper.SetDefault("otel.enabled", false)
 	viper.SetDefault("otel.service_name", "kaleidoscope")
 	viper.SetDefault("otel.collector_url", "http://localhost:4318")
@@ -183,6 +184,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("agent_enabled", true)
 	viper.SetDefault("enable_registration", true)
 	viper.SetDefault("jwt.secret", "your-secret-key-change-in-production")
+	viper.SetDefault("jwt.expiration_hours", 24)
 
 	// Read config file (if exists)
 	if err := viper.ReadInConfig(); err != nil {

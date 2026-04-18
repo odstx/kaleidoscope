@@ -48,7 +48,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	utils.InitJWTSecret(config.JWT.Secret)
+	utils.InitJWTSecret(config.JWT.Secret, config.JWT.ExpirationHours)
 
 	tel, err := telemetry.InitTelemetry(context.Background(), config, logger)
 	if err != nil {
@@ -91,7 +91,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		config.Redis.DB,
 	)
 
-	userService := services.NewUserService(db.DB, asynqClient)
+	userService := services.NewUserService(db.DB, asynqClient, config.Security.ResetTokenExpirationHours)
 	oidcService := services.NewOIDCService(&config.OIDC)
 	appService := services.NewAppService(db.DB)
 	agentService := services.NewAgentService(db.DB, config)
