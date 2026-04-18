@@ -33,10 +33,11 @@ import (
 
 // Server wraps the HTTP server and dependencies
 type Server struct {
-	httpServer *http.Server
-	logger     *zap.Logger
-	config     *config.Config
-	telemetry  *telemetry.Telemetry
+	httpServer    *http.Server
+	logger        *zap.Logger
+	config        *config.Config
+	telemetry     *telemetry.Telemetry
+	healthChecker *etcd.HealthChecker
 }
 
 // NewServer creates a new HTTP server instance
@@ -66,6 +67,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	logger.Info("Database migrations completed successfully")
 
 	var etcdClient *etcd.Client
+	var healthChecker *etcd.HealthChecker
 	if config.Microservice.Enabled {
 		etcdClient, err = etcd.New(&etcd.Config{
 			Endpoints: config.Etcd.Endpoints,
@@ -76,6 +78,10 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		if _, err := etcdClient.ListServices(context.Background()); err != nil {
 			logger.Warn("Failed to load initial services from etcd", zap.Error(err))
 		}
+
+		healthChecker = etcd.NewHealthChecker(etcdClient, logger, 15*time.Second, 5*time.Second, config.Microservice.AppWhitelist)
+		healthChecker.Start()
+		logger.Info("Microservice health checker enabled", zap.Int("whitelist_count", len(config.Microservice.AppWhitelist)))
 	}
 
 	// Create Asynq client for task enqueuing
@@ -185,10 +191,11 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 	}
 
 	return &Server{
-		httpServer: httpServer,
-		logger:     logger,
-		config:     config,
-		telemetry:  tel,
+		httpServer:    httpServer,
+		logger:        logger,
+		config:        config,
+		telemetry:     tel,
+		healthChecker: healthChecker,
 	}
 }
 
@@ -209,6 +216,10 @@ func (s *Server) Start() error {
 // Stop gracefully shuts down the HTTP server
 func (s *Server) Stop() error {
 	s.logger.Info("Shutting down HTTP server...")
+
+	if s.healthChecker != nil {
+		s.healthChecker.Stop()
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

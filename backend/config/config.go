@@ -179,6 +179,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	viper.SetDefault("oidc.scopes", []string{"openid", "profile", "email"})
 	viper.SetDefault("microservice.enabled", false)
 	viper.SetDefault("microservice.service_domain", "service")
+	viper.SetDefault("microservice.app_whitelist", []string{})
 	viper.SetDefault("agent_enabled", true)
 	viper.SetDefault("enable_registration", true)
 	viper.SetDefault("jwt.secret", "your-secret-key-change-in-production")
