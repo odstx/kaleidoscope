@@ -16,12 +16,13 @@ import (
 )
 
 type UserService struct {
-	db     *gorm.DB
-	client *worker.Client
+	db                      *gorm.DB
+	client                  *worker.Client
+	resetTokenExpirationHrs int
 }
 
-func NewUserService(db *gorm.DB, client *worker.Client) *UserService {
-	return &UserService{db: db, client: client}
+func NewUserService(db *gorm.DB, client *worker.Client, resetTokenExpirationHrs int) *UserService {
+	return &UserService{db: db, client: client, resetTokenExpirationHrs: resetTokenExpirationHrs}
 }
 
 func (s *UserService) GetDB() *gorm.DB {
@@ -406,7 +407,11 @@ func (s *UserService) ForgotPassword(email string) error {
 	}
 
 	token := uuid.New().String()
-	expiresAt := time.Now().Add(1 * time.Hour).Unix()
+	expirationHrs := s.resetTokenExpirationHrs
+	if expirationHrs <= 0 {
+		expirationHrs = 1
+	}
+	expiresAt := time.Now().Add(time.Duration(expirationHrs) * time.Hour).Unix()
 
 	user.ResetToken = token
 	user.ResetTokenExpiresAt = expiresAt

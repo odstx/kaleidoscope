@@ -48,7 +48,7 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		gin.SetMode(gin.DebugMode)
 	}
 
-	utils.InitJWTSecret(config.JWT.Secret)
+	utils.InitJWTSecret(config.JWT.Secret, config.JWT.ExpirationHours)
 
 	tel, err := telemetry.InitTelemetry(context.Background(), config, logger)
 	if err != nil {
@@ -91,16 +91,17 @@ func NewServer(logger *zap.Logger, config *config.Config) *Server {
 		config.Redis.DB,
 	)
 
-	userService := services.NewUserService(db.DB, asynqClient)
+	userService := services.NewUserService(db.DB, asynqClient, config.Security.ResetTokenExpirationHours)
 	oidcService := services.NewOIDCService(&config.OIDC)
 	appService := services.NewAppService(db.DB)
 	agentService := services.NewAgentService(db.DB, config)
 
-	var rateLimiter *middleware.RateLimiter
-	if config.RateLimit.Enabled {
-		rateLimiter = middleware.NewRateLimiter(db.Redis, config.RateLimit.RequestsPerMinute)
-		logger.Info("Rate limiter enabled", zap.Int("requests_per_minute", config.RateLimit.RequestsPerMinute))
+	requestsPerMinute := config.RateLimit.RequestsPerMinute
+	if requestsPerMinute <= 0 {
+		requestsPerMinute = 60
 	}
+	rateLimiter := middleware.NewRateLimiter(db.Redis, requestsPerMinute)
+	logger.Info("Rate limiter enabled", zap.Int("requests_per_minute", requestsPerMinute))
 
 	router := gin.New()
 
